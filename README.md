@@ -1,4 +1,123 @@
+# MEB: find a conference talk with room to spare
+
+Popular talks fill up, and you often only find out at the door. MEB counts people in each room from camera frames and suggests related talks happening at about the same time in rooms that still have space.
+
+Built at the Cloud Native Hackathon. It runs at **https://meb.cnh.radarhq.io**, on Kubernetes, deployed through Argo CD and operated with [Radar](https://radarhq.io).
+
+## How it works
+
+```text
+Camera frames ──> Counter (YOLO11-nano) ──> GET /last ───────────────> Rooms dashboard
+                         │
+                         └──> POST /api/occupancy ──> Elasticsearch
+                                                           │
+Attendee picks a talk ──> Flask app ──> relevance × room space ──> Less crowded alternatives
+```
+
+1. **Count.** The counter runs YOLO11-nano through ONNX Runtime on CPU, at about 400 ms per frame. Every 30 seconds it counts the next frame for each room. On 200 frames of the Mall dataset it was off by 3.65 people on average ([details](counter/README.md)).
+2. **Clean up the count.** Readings are clamped to a plausible range and smoothed, and a sudden jump is held until a second frame confirms it. Each room's latest value is stored in `occupancy`, and raw counts are kept in `occupancy-history`.
+3. **Find related talks.** Elasticsearch filters to talks that overlap the chosen one, then scores relevance from ELSER semantic search, `more_like_this`, and shared tags and track.
+4. **Rank by relevance and space.** `score = relevance × (1 − ratio²)`, where `ratio` is how full the room is. Quiet rooms are barely penalized, nearly full ones heavily, and rooms at 90% or more are dropped.
+5. **Show it.** The attendee page shows every room's level. If the talk you pick is busy or full, it lists quieter alternatives and what they have in common with your pick.
+
+| Crowd level | Room is |
+|---|---|
+| Low | under 50% full |
+| Medium | 50% to 75% |
+| High (busy) | 75% to 90% |
+| Full | 90% or more |
+
+A reading older than 90 seconds counts as "No data" and adds no penalty, so a stopped counter can't keep a room marked full. If Elasticsearch is unreachable, the app keeps answering by ranking same-time talks on shared tags from the seed schedule.
+
+The two outputs use different paths: the rooms dashboard reads the counter directly, while recommendations read Elasticsearch. The counter only feeds recommendations when `OCCUPANCY_URL` is set.
+
+## What's in the repo
+
+| Path | What |
+|---|---|
+| `app/app.py` | Flask app and API routes |
+| `app/occupancy.py` | Rooms dashboard data, read from the counter, and the smoothing logic |
+| `app/search/` | Elasticsearch client, mappings, bootstrap, recommendations, occupancy storage |
+| `app/data/` | Seed schedule (`talks.json`) and rooms with capacities (`venue.json`) |
+| `app/templates/`, `app/static/` | Attendee and organizer pages |
+| `app/sim.py` | Development-only occupancy simulator |
+| `counter/` | People counter, replay loop and evaluation ([README](counter/README.md)) |
+| `deploy/` | Kubernetes manifests that Argo CD applies |
+| `jobs/es-bootstrap.yaml` | One-off Job that creates the indices and loads the talks |
+
+## API
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/talks?q=` | Lists talks by start time, or searches them when `q` is set |
+| `GET /api/talks/<id>/alternatives` | Returns ranked alternatives, with shared tags and crowd level |
+| `POST /api/occupancy` | Stores a reading: `{"area": "hall-a", "count": 42}`. Needs `Authorization: Bearer <token>` |
+| `GET /api/occupancy` | Returns every room's level from the counter |
+| `GET /api/occupancy/<room>` | Returns one room's level |
+| `GET /api/occupancy/<room>/frame.jpg` | Returns the latest annotated camera frame |
+| `GET /healthz`, `GET /readyz` | Health probes. `/readyz` deliberately doesn't depend on Elasticsearch |
+
+`area` must be a room ID from `app/data/venue.json`. `capacity` is optional and defaults to that file's value.
+
+## Configuration
+
+Credentials live in the Kubernetes Secret `es-credentials` in namespace `team-meb`, never in this repo.
+
+| Secret key | Environment variable | What it is |
+|---|---|---|
+| `url` | `ES_URL` | Elasticsearch endpoint of the Serverless project |
+| `api-key` | `ES_API_KEY` | Project API key, limited to `talks*` and `occupancy*` |
+| `occupancy-token` | `OCCUPANCY_TOKEN` | Shared token for `POST /api/occupancy`, which refuses all writes without it |
+
+`ES_INFERENCE_ID` overrides the ELSER endpoint, which defaults to `.elser-2-elastic`. `COUNTER_URL` sets where the app finds the counter, and defaults to `http://counter`.
+
+## Run it locally
+
+Use Python 3.12 from the `app/` folder. Without Elasticsearch settings the app still runs, using the fallback ranking.
+
+```bash
+cd app
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+export ES_URL="<your endpoint>" ES_API_KEY="<your key>" OCCUPANCY_TOKEN="<any long value>"
+.venv/bin/python -m search.bootstrap
+.venv/bin/flask --app app run --port 8080
+```
+
+To simulate crowds without cameras, run this in a second terminal from `app/`, with `OCCUPANCY_TOKEN` set:
+
+```bash
+.venv/bin/python sim.py --url http://localhost:8080
+```
+
+To run the tests from the repo root, install `app/requirements-dev.txt` and `counter/requirements-dev.txt`, then:
+
+```bash
+python -m pytest app/tests
+python -m pytest counter/tests
+```
+
+## Deploy
+
+Merging to `main` is the deploy. GitHub Actions builds the app and counter images, commits the new tags to `deploy/kustomization.yaml`, and Argo CD syncs the cluster.
+
+Two setup steps sit outside that flow:
+
+- **Search data.** Run `jobs/es-bootstrap.yaml` as a one-off Job, with the image tag filled in and a new Job name each run. It's safe to re-run. An index that already exists keeps its mapping, so delete it first to apply a mapping change.
+- **Replay frames.** They aren't in git or the image. See [Frames on the cluster](counter/README.md#frames-on-the-cluster).
+
+## What's real and what's simulated
+
+- The 20 talks and their speakers are invented seed data.
+- The counter runs real inference on recorded footage from the [Mall dataset](counter/README.md#accuracy), not live cameras. The dataset's redistribution licence is unconfirmed, so its frames aren't in this repo.
+- Hall A's capacity is set to 40 so that the footage reads as crowded for the demo.
+- The YOLO11 weights are AGPL-3.0 (Ultralytics).
+
+---
+
 # Radar AI SRE track starter: Cloud Native Hackathon
+
+This is the guide this project started from: how to get a cluster, connect Radar, and work with its limits.
 
 Start here if your team has its own cluster at the hackathon: a virtual Kubernetes cluster (vcluster) where you're cluster-admin. You get a small app that `git push` deploys through Argo CD, and notes your coding agent reads so it ships through [Radar](https://radarhq.io)'s MCP server. Below is a menu of what Radar can do: pick what your project needs.
 
@@ -98,7 +217,7 @@ Pick what your project needs. None of it is required, and more doesn't score hig
 
 For credentials, one-off Jobs, dependencies and checking the running app, see [the optional agent workflows](examples/agent-workflows/README.md).
 
-Replace `app/` with your own project whenever you like. Keep it listening on `$PORT` (8080) with `/healthz` and `/readyz`, or update the probes in `deploy/`. The Dockerfile installs the dependencies in `app/package.json`; for another language, change the Dockerfile too.
+Replace `app/` with your own project whenever you like. Keep it listening on `$PORT` (8080) with `/healthz` and `/readyz`, or update the probes in `deploy/`. The Dockerfile installs the dependencies in `app/requirements.txt`; for another language, change the Dockerfile too.
 
 ## What the judges look for
 
