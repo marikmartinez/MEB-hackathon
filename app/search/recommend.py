@@ -40,7 +40,7 @@ def crowd_penalty(ratio):
     return min(max(ratio, 0.0), 1.0) ** 2
 
 
-def _level_for(ratio):
+def level_for(ratio):
     if ratio is None:
         return "unknown"
     if ratio < 0.5:
@@ -72,13 +72,17 @@ def _read_occupancy(client):
     return _occupancy
 
 
+def _room_level(occupancy, room_id):
+    room = occupancy.get(room_id, {})
+    return room.get("level") or level_for(room.get("ratio"))
+
+
 def _rerank(talk, candidates, occupancy, k, source):
     top = max((relevance for _, relevance in candidates), default=0) or 1
     results = []
     for candidate, relevance in candidates:
-        room = occupancy.get(candidate["room"], {})
-        ratio = room.get("ratio")
-        level = room.get("level") or _level_for(ratio)
+        ratio = occupancy.get(candidate["room"], {}).get("ratio")
+        level = _room_level(occupancy, candidate["room"])
         if level == "full" or (ratio is not None and ratio >= FULL_RATIO):
             continue
 
@@ -90,7 +94,12 @@ def _rerank(talk, candidates, occupancy, k, source):
             "why": {"shared_tags": shared_tags, "crowd_level": level},
         })
     results.sort(key=lambda result: result["score"], reverse=True)
-    return {"talk_id": talk["id"], "source": source, "results": results[:k]}
+    return {
+        "talk_id": talk["id"],
+        "crowd_level": _room_level(occupancy, talk["room"]),
+        "source": source,
+        "results": results[:k],
+    }
 
 
 def _constraints(talk):
@@ -174,6 +183,40 @@ def _recommend_fallback(talk_id, k):
         and other["end"] > talk["start"]
     ]
     return _rerank(talk, candidates, _occupancy, k, "fallback")
+
+
+def list_talks(q=None):
+    """List talks by start time, or search them when q is given."""
+    client = get_client()
+    if client is not None:
+        query = (
+            {"multi_match": {"query": q, "fields": ["title^3", "abstract", "tags", "speaker"]}}
+            if q
+            else {"match_all": {}}
+        )
+        try:
+            result = client.options(max_retries=0).search(
+                index="talks",
+                size=100,
+                source=TALK_FIELDS,
+                query=query,
+                sort=None if q else [{"start": "asc"}, {"id": "asc"}],
+            )
+            talks = [hit["_source"] for hit in result["hits"]["hits"]]
+            return {"source": "elasticsearch", "talks": talks}
+        except (ApiError, TransportError) as err:
+            logger.warning("talk list falling back: %s", type(err).__name__)
+
+    talks = sorted(_seed_talks(), key=lambda talk: (talk["start"], talk["id"]))
+    if q:
+        needle = q.lower()
+        talks = [
+            talk for talk in talks
+            if needle in " ".join(
+                [talk["title"], talk["abstract"], talk["speaker"], *talk["tags"]]
+            ).lower()
+        ]
+    return {"source": "fallback", "talks": talks}
 
 
 def recommend(talk_id, k=5):

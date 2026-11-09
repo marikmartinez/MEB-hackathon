@@ -75,6 +75,7 @@ def main():
     )
     ensure_index(client, "talks", TALKS_MAPPINGS)
     ensure_index(client, "occupancy", OCCUPANCY_MAPPINGS)
+    ensure_index(client, "occupancy-history", OCCUPANCY_MAPPINGS)
     return 0 if load_into_es(client, talks) else 1
 
 
