@@ -1,0 +1,1 @@
+One folder per area (`frames/<area-id>/0001.jpg`, ...), made with `python -m counter.extract_frames VIDEO AREA`. The replay loop cycles through each folder, one frame per tick. Folder names must match area ids in the app's `venue.json`.
