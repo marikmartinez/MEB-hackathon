@@ -1,4 +1,5 @@
 """Tests for recommend() with Elasticsearch mocked. Run from app/: python -m pytest"""
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
@@ -24,9 +25,15 @@ UNRELATED = talk("t19", "room-102", ["security"])
 SCORES = [(RELATED, 12.0), (ALSO_RELATED, 8.0), (UNRELATED, 3.0)]
 
 
-def occupancy(**ratios):
+def seconds_ago(seconds):
+    return (datetime.now(timezone.utc) - timedelta(seconds=seconds)).isoformat()
+
+
+def occupancy(age=0, **ratios):
     return {
-        room.replace("_", "-"): {"area": room.replace("_", "-"), "ratio": ratio}
+        room.replace("_", "-"): {
+            "area": room.replace("_", "-"), "ratio": ratio, "ts": seconds_ago(age),
+        }
         for room, ratio in ratios.items()
     }
 
@@ -98,8 +105,37 @@ def test_full_rooms_are_dropped():
 
 
 def test_full_level_from_the_pipeline_drops_a_room():
-    rooms = {"hall-b": {"area": "hall-b", "ratio": 0.5, "level": "full"}}
+    rooms = {"hall-b": {"area": "hall-b", "ratio": 0.5, "level": "full", "ts": seconds_ago(0)}}
     assert "t17" not in ids(recommend_with(es_client(rooms)))
+
+
+def test_stale_full_room_is_unknown_and_not_dropped():
+    result = recommend_with(es_client(occupancy(age=r.STALE_SECONDS + 5, hall_b=0.95)))
+    in_hall_b = next(item for item in result["results"] if item["id"] == "t17")
+    assert in_hall_b["why"]["crowd_level"] == "unknown"
+    assert in_hall_b["score"] == 1.0
+
+
+def test_recent_reading_still_counts():
+    result = recommend_with(es_client(occupancy(age=r.STALE_SECONDS - 30, hall_b=0.95)))
+    assert "t17" not in ids(result)
+
+
+@pytest.mark.parametrize("ts", [None, "not-a-date"])
+def test_reading_without_a_usable_timestamp_is_ignored(ts):
+    rooms = {"hall-b": {"area": "hall-b", "ratio": 0.95, "ts": ts}}
+    assert "t17" in ids(recommend_with(es_client(rooms)))
+
+
+def test_chosen_talks_stale_room_reads_unknown():
+    rooms = occupancy(age=r.STALE_SECONDS + 5, hall_a=0.95)
+    assert recommend_with(es_client(rooms))["crowd_level"] == "unknown"
+
+
+def test_fallback_ignores_last_known_levels_once_stale():
+    recommend_with(es_client(occupancy(hall_b=0.95)))
+    r._occupancy["hall-b"]["ts"] = seconds_ago(r.STALE_SECONDS + 5)
+    assert "t17" in ids(recommend_with(None))
 
 
 def test_k_limits_results():

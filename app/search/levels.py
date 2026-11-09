@@ -1,4 +1,6 @@
 FULL_RATIO = 0.9
+# Three of the counter's default 30-second ticks.
+STALE_SECONDS = 90
 LEVELS = [(0.5, "low"), (0.75, "medium"), (FULL_RATIO, "high")]
 
 
