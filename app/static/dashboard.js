@@ -175,10 +175,14 @@ async function refreshRooms() {
     if (!deepLinkDone) {
       // /#room-hall-a opens that room's feed on load.
       deepLinkDone = true;
-      const wanted = rows.get(decodeURIComponent(location.hash.replace(/^#room-/, "")));
-      if (wanted && location.hash.startsWith("#room-")) {
-        setOpen(wanted, true);
-        wanted.li.scrollIntoView({ block: "nearest" });
+      if (location.hash.startsWith("#room-")) {
+        let id = null;
+        try { id = decodeURIComponent(location.hash.slice(6)); } catch { /* bad hash */ }
+        const wanted = id && rows.get(id);
+        if (wanted) {
+          setOpen(wanted, true);
+          wanted.li.scrollIntoView({ block: "nearest" });
+        }
       }
     }
     dashSummary.textContent = summary(data.areas);
