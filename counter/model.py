@@ -41,7 +41,9 @@ class PersonCounter:
     def __init__(
         self,
         model_path: str | os.PathLike = DEFAULT_MODEL,
-        conf: float = 0.35,
+        # Low on purpose: overhead cameras show small, partly hidden people.
+        # Measured on the Mall dataset, 0.15 at 1280px is close to unbiased.
+        conf: float = 0.15,
         iou: float = 0.45,
         threads: int = 1,
     ):
@@ -53,7 +55,8 @@ class PersonCounter:
             str(model_path), sess_options=opts, providers=["CPUExecutionProvider"]
         )
         self.input_name = self.session.get_inputs()[0].name
-        _, _, self.size, _ = self.session.get_inputs()[0].shape  # [1, 3, 640, 640]
+        # Input size comes from the model, e.g. [1, 3, 1280, 1280].
+        _, _, self.size, _ = self.session.get_inputs()[0].shape
         self.conf = conf
         self.iou = iou
 
