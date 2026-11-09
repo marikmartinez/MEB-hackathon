@@ -15,7 +15,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: bootstrap
-          image: ghcr.io/sebastiancarter/meb-hackathon:BUILT-TAG
+          image: ghcr.io/marikmartinez/meb-hackathon:BUILT-TAG
           command: [python, -m, search.bootstrap]
           env:
             - name: ES_URL
