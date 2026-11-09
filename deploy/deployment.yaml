@@ -39,7 +39,7 @@ spec:
                   name: es-credentials
                   key: api-key
                   optional: true
-            # Locks POST /api/occupancy once this key is added to the Secret.
+            # POST /api/occupancy refuses all writes until this key is in the Secret.
             - name: OCCUPANCY_TOKEN
               valueFrom:
                 secretKeyRef:

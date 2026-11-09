@@ -69,7 +69,14 @@ async function loadTalks(query) {
       options.push(new Option(label, talk.id));
     }
     talkSelect.replaceChildren(...options);
-    if (talks.has(selected)) talkSelect.value = selected;
+    if (talks.has(selected)) {
+      talkSelect.value = selected;
+    } else if (selected) {
+      // Setting the value in code doesn't fire "change", so reset by hand.
+      clearInterval(refreshTimer);
+      statusSection.replaceChildren();
+      alternativesSection.replaceChildren();
+    }
     showError("");
   } catch {
     showError("Couldn't load the schedule. Please try again.");
