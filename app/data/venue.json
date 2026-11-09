@@ -1,26 +1,10 @@
 {
-  "areas": [
-    { "id": "atrium", "name": "Atrium", "type": "corridor", "capacity": 400 },
-    { "id": "corridor-east", "name": "East Corridor", "type": "corridor", "capacity": 80 },
-    { "id": "corridor-west", "name": "West Corridor", "type": "corridor", "capacity": 80 },
-    { "id": "corridor-north", "name": "North Corridor", "type": "corridor", "capacity": 60 },
-    { "id": "hall-a", "name": "Hall A", "type": "room", "capacity": 300 },
-    { "id": "hall-b", "name": "Hall B", "type": "room", "capacity": 200 },
-    { "id": "room-101", "name": "Room 101", "type": "room", "capacity": 80 },
-    { "id": "room-102", "name": "Room 102", "type": "room", "capacity": 80 },
-    { "id": "room-103", "name": "Room 103", "type": "room", "capacity": 60 },
-    { "id": "room-104", "name": "Room 104", "type": "room", "capacity": 60 }
-  ],
-  "connections": [
-    ["atrium", "corridor-east"],
-    ["atrium", "corridor-west"],
-    ["corridor-east", "corridor-north"],
-    ["corridor-west", "corridor-north"],
-    ["corridor-east", "hall-a"],
-    ["corridor-east", "hall-b"],
-    ["corridor-east", "room-101"],
-    ["corridor-west", "room-102"],
-    ["corridor-west", "room-103"],
-    ["corridor-north", "room-104"]
+  "rooms": [
+    { "id": "hall-a", "name": "Hall A", "capacity": 300 },
+    { "id": "hall-b", "name": "Hall B", "capacity": 200 },
+    { "id": "room-101", "name": "Room 101", "capacity": 80 },
+    { "id": "room-102", "name": "Room 102", "capacity": 80 },
+    { "id": "room-103", "name": "Room 103", "capacity": 60 },
+    { "id": "room-104", "name": "Room 104", "capacity": 60 }
   ]
 }
