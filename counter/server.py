@@ -7,7 +7,7 @@
     GET  /last/<area>.jpg    latest frame for an area, with boxes drawn
 
 Config (env): FRAMES_DIR, TICK_SECONDS (30), OCCUPANCY_URL (unset = don't post),
-CONF (0.35), THREADS (1), REPLAY (1 = run the replay loop).
+CONF (0.15), THREADS (1), REPLAY (1 = run the replay loop).
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def create_app(replay: bool | None = None) -> Flask:
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD
 
-    counter = PersonCounter(conf=float(os.environ.get("CONF", "0.35")), threads=int(os.environ.get("THREADS", "1")))
+    counter = PersonCounter(conf=float(os.environ.get("CONF", "0.15")), threads=int(os.environ.get("THREADS", "1")))
     replayer = Replayer(
         counter,
         frames_dir=Path(os.environ.get("FRAMES_DIR", Path(__file__).parent / "frames")),

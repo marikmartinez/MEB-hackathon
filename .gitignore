@@ -13,3 +13,6 @@ npm-debug.log*
 __pycache__/
 .venv/
 .pytest_cache/
+
+# Replay frames stay local: don't redistribute the Mall dataset (licence unconfirmed).
+counter/frames/*/
