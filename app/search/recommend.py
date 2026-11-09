@@ -2,6 +2,7 @@
 import json
 import logging
 import time
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
@@ -19,6 +20,7 @@ TALK_FIELDS = [
 ]
 OVERFETCH = 20
 OCCUPANCY_TTL_SECONDS = 10
+STALE_SECONDS = 90
 
 # The last occupancy read is kept after it expires, so the fallback can still
 # use crowd levels when Elasticsearch goes down.
@@ -40,6 +42,11 @@ def crowd_penalty(ratio):
     return min(max(ratio, 0.0), 1.0) ** 2
 
 
+def _fresh(doc, now):
+    ts = doc.get("ts")
+    return ts and now - datetime.fromisoformat(ts).timestamp() <= STALE_SECONDS
+
+
 def _read_occupancy(client):
     global _occupancy, _occupancy_read_at
     now = time.monotonic()
@@ -49,13 +56,18 @@ def _read_occupancy(client):
         result = client.options(max_retries=0).search(
             index="occupancy",
             size=200,
-            source=["area", "ratio", "level"],
+            source=["area", "ratio", "level", "ts"],
             query={"match_all": {}},
         )
     except (ApiError, TransportError):
         logger.warning("couldn't read occupancy, using the last known levels")
         return _occupancy
-    _occupancy = {h["_source"]["area"]: h["_source"] for h in result["hits"]["hits"]}
+    wall = time.time()
+    _occupancy = {
+        h["_source"]["area"]: h["_source"]
+        for h in result["hits"]["hits"]
+        if _fresh(h["_source"], wall)
+    }
     _occupancy_read_at = now
     return _occupancy
 

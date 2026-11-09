@@ -1,4 +1,6 @@
 """Tests for recommend() with Elasticsearch mocked. Run from app/: python -m pytest"""
+import time
+from datetime import datetime, timezone
 from unittest import mock
 
 import pytest
@@ -26,7 +28,11 @@ SCORES = [(RELATED, 12.0), (ALSO_RELATED, 8.0), (UNRELATED, 3.0)]
 
 def occupancy(**ratios):
     return {
-        room.replace("_", "-"): {"area": room.replace("_", "-"), "ratio": ratio}
+        room.replace("_", "-"): {
+            "area": room.replace("_", "-"),
+            "ratio": ratio,
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
         for room, ratio in ratios.items()
     }
 
@@ -98,7 +104,14 @@ def test_full_rooms_are_dropped():
 
 
 def test_full_level_from_the_pipeline_drops_a_room():
-    rooms = {"hall-b": {"area": "hall-b", "ratio": 0.5, "level": "full"}}
+    rooms = {
+        "hall-b": {
+            "area": "hall-b",
+            "ratio": 0.5,
+            "level": "full",
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
+    }
     assert "t17" not in ids(recommend_with(es_client(rooms)))
 
 
@@ -123,6 +136,31 @@ def test_query_is_limited_to_overlapping_talks_and_excludes_the_chosen_one():
     assert {"range": {"start": {"lt": CHOSEN["end"]}}} in query["filter"]
     assert {"range": {"end": {"gt": CHOSEN["start"]}}} in query["filter"]
     assert query["minimum_should_match"] == 1
+
+
+def test_stale_occupancy_readings_are_ignored():
+    now = time.time()
+    rooms = {
+        "hall-a": {
+            "area": "hall-a",
+            "ratio": 0.9,
+            "ts": datetime.fromtimestamp(
+                now - r.STALE_SECONDS - 1, timezone.utc
+            ).isoformat(),
+        },
+        "hall-b": {
+            "area": "hall-b",
+            "ratio": 0.2,
+            "ts": datetime.fromtimestamp(
+                now - r.STALE_SECONDS + 1, timezone.utc
+            ).isoformat(),
+        },
+    }
+    client = es_client(rooms)
+
+    assert list(r._read_occupancy(client)) == ["hall-b"]
+    call = next(c for c in client.search.call_args_list if c.kwargs["index"] == "occupancy")
+    assert call.kwargs["source"] == ["area", "ratio", "level", "ts"]
 
 
 def test_occupancy_is_cached_between_requests():
