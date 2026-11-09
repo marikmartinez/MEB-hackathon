@@ -7,7 +7,7 @@ from pathlib import Path
 from elasticsearch import ApiError, TransportError
 
 from search.client import get_client
-from search.recommend import level_for
+from search.levels import level_for
 
 logger = logging.getLogger(__name__)
 

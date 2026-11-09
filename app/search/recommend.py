@@ -8,6 +8,7 @@ from pathlib import Path
 from elasticsearch import ApiError, TransportError
 
 from search.client import get_client
+from search.levels import FULL_RATIO, level_for
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,6 @@ TALK_FIELDS = [
 ]
 OVERFETCH = 20
 OCCUPANCY_TTL_SECONDS = 10
-FULL_RATIO = 0.9
 
 # The last occupancy read is kept after it expires, so the fallback can still
 # use crowd levels when Elasticsearch goes down.
@@ -38,18 +38,6 @@ def _seed_talks():
 def crowd_penalty(ratio):
     """Map an occupancy ratio to 0-1: gentle while quiet, steep near capacity."""
     return min(max(ratio, 0.0), 1.0) ** 2
-
-
-def level_for(ratio):
-    if ratio is None:
-        return "unknown"
-    if ratio < 0.5:
-        return "low"
-    if ratio < 0.75:
-        return "medium"
-    if ratio < FULL_RATIO:
-        return "high"
-    return "full"
 
 
 def _read_occupancy(client):
