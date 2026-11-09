@@ -11,4 +11,5 @@ ENV PORT=8080 APP_VERSION=$APP_VERSION PYTHONUNBUFFERED=1 HOME=/tmp
 USER 1000
 EXPOSE 8080
 # sh expands $PORT; exec lets gunicorn receive SIGTERM so rollouts don't drop requests.
-CMD ["sh", "-c", "exec gunicorn -b 0.0.0.0:${PORT} app:app"]
+# Threads keep the health probes answering while a request waits on Elasticsearch.
+CMD ["sh", "-c", "exec gunicorn -b 0.0.0.0:${PORT} --threads 4 app:app"]
