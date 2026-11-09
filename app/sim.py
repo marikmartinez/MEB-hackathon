@@ -36,7 +36,8 @@ def main():
     parser.add_argument("--rounds", type=int, default=0, help="0 runs until stopped")
     args = parser.parse_args()
 
-    rooms = json.loads(VENUE.read_text())["rooms"]
+    areas = json.loads(VENUE.read_text())["areas"]
+    rooms = [area for area in areas if area["type"] == "room"]
     token = os.environ.get("OCCUPANCY_TOKEN")
     ratios = {room["id"]: random.uniform(0.1, 0.8) for room in rooms}
 

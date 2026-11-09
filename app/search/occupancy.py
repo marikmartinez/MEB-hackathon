@@ -16,7 +16,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 def load_rooms():
     venue = json.loads((DATA_DIR / "venue.json").read_text())
-    return {room["id"]: room for room in venue["rooms"]}
+    return {area["id"]: area for area in venue["areas"] if area["type"] == "room"}
 
 
 def record_occupancy(area, count, capacity):

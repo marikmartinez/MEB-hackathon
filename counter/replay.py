@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 import threading
 import time
 import urllib.request
@@ -102,9 +103,11 @@ class Replayer:
         if not self.occupancy_url:
             return
         body = json.dumps({"area": snap.area, "count": snap.count, "ts": snap.ts}).encode()
-        req = urllib.request.Request(
-            self.occupancy_url, data=body, method="POST", headers={"Content-Type": "application/json"}
-        )
+        headers = {"Content-Type": "application/json"}
+        token = os.environ.get("OCCUPANCY_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(self.occupancy_url, data=body, method="POST", headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=self.post_timeout) as resp:
                 resp.read()

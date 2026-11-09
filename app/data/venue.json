@@ -1,10 +1,11 @@
 {
-  "rooms": [
-    { "id": "hall-a", "name": "Hall A", "capacity": 300 },
-    { "id": "hall-b", "name": "Hall B", "capacity": 200 },
-    { "id": "room-101", "name": "Room 101", "capacity": 80 },
-    { "id": "room-102", "name": "Room 102", "capacity": 80 },
-    { "id": "room-103", "name": "Room 103", "capacity": 60 },
-    { "id": "room-104", "name": "Room 104", "capacity": 60 }
-  ]
+  "areas": [
+    { "id": "hall-a", "name": "Hall A", "type": "room", "capacity": 40 },
+    { "id": "hall-b", "name": "Hall B", "type": "room", "capacity": 200 },
+    { "id": "room-101", "name": "Room 101", "type": "room", "capacity": 80 },
+    { "id": "room-102", "name": "Room 102", "type": "room", "capacity": 80 },
+    { "id": "room-103", "name": "Room 103", "type": "room", "capacity": 60 },
+    { "id": "room-104", "name": "Room 104", "type": "room", "capacity": 60 }
+  ],
+  "connections": []
 }

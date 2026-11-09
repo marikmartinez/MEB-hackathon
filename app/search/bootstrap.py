@@ -30,7 +30,7 @@ def load_talks():
     if len(set(ids)) != len(ids):
         raise ValueError("talks.json has duplicate ids")
 
-    rooms = {room["id"] for room in venue["rooms"]}
+    rooms = {area["id"] for area in venue["areas"] if area["type"] == "room"}
     unknown = sorted({talk["room"] for talk in talks} - rooms)
     if unknown:
         raise ValueError(f"talks.json uses rooms not in venue.json: {unknown}")
