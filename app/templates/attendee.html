@@ -9,6 +9,15 @@
 <body>
   <main>
     <h1>Find a talk with room to spare</h1>
+    <section class="dashboard" aria-labelledby="rooms-title">
+      <div class="dashboard-head">
+        <h2 id="rooms-title">Rooms right now</h2>
+        <p id="rooms-summary" class="dashboard-summary" aria-live="polite">Loading…</p>
+      </div>
+      <p id="rooms-note" class="note" role="status" hidden></p>
+      <ul id="rooms-now" class="rooms"></ul>
+    </section>
+    <h2>Find a talk</h2>
     <label for="search">Search talks</label>
     <input id="search" type="search" placeholder="Postgres, security, GPUs…" autocomplete="off">
     <label for="talk">Pick a talk</label>
@@ -20,5 +29,6 @@
   </main>
   <script id="rooms" type="application/json">{{ rooms|tojson }}</script>
   <script src="{{ url_for('static', filename='attendee.js') }}"></script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>
 </html>
