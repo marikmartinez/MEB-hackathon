@@ -53,6 +53,29 @@ body {
 }
 
 main { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
+
+/* Attendee / Organizer switch, shared by both pages (templates/_switcher.html). */
+.switcher {
+  display: inline-flex;
+  margin: -12px 0 20px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+.switcher a {
+  padding: 6px 16px;
+  color: var(--text);
+  text-decoration: none;
+}
+.switcher a + a { border-left: 1px solid var(--border); }
+.switcher a:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.switcher a[aria-current="page"] { background: var(--text); color: var(--bg); font-weight: 600; }
+.switcher a:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; border-radius: 999px; }
+@media (forced-colors: active) {
+  .switcher a[aria-current="page"] { outline: 2px solid CanvasText; outline-offset: -2px; }
+}
 h1 { margin: 0 0 24px; font-size: 1.75rem; line-height: 1.2; }
 h2 { margin: 28px 0 12px; font-size: 1.15rem; }
 label { display: block; margin: 16px 0 4px; font-weight: 600; }
