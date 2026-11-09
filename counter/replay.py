@@ -12,6 +12,7 @@ import logging
 import threading
 import time
 import urllib.request
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +22,8 @@ from counter import metrics
 from counter.model import CountResult, PersonCounter, draw_boxes
 
 log = logging.getLogger(__name__)
+
+HISTORY_LEN = 10
 
 
 @dataclass
@@ -48,6 +51,9 @@ class Replayer:
         self.occupancy_url = occupancy_url or None
         self.post_timeout = post_timeout
         self.latest: dict[str, Snapshot] = {}
+        # Recent (ts, count) per area, oldest first, so readers can smooth
+        # and sanity-check counts without keeping state of their own.
+        self.history: dict[str, deque[tuple[float, int]]] = {}
         self._positions: dict[str, int] = {}
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -87,6 +93,7 @@ class Replayer:
         snap = Snapshot(area, frame, result.count, result.latency_ms, time.time(), buf)
         with self._lock:
             self.latest[area] = snap
+            self.history.setdefault(area, deque(maxlen=HISTORY_LEN)).append((snap.ts, snap.count))
         metrics.observe(area, result)
         log.info("area=%s frame=%s count=%d latency_ms=%.0f", area, frame, result.count, result.latency_ms)
         return snap
@@ -109,6 +116,10 @@ class Replayer:
     def snapshot(self, area: str) -> Snapshot | None:
         with self._lock:
             return self.latest.get(area)
+
+    def recent(self, area: str) -> list[tuple[float, int]]:
+        with self._lock:
+            return list(self.history.get(area, ()))
 
     def start(self) -> None:
         if self._thread:

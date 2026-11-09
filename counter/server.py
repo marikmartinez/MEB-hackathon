@@ -79,11 +79,18 @@ def create_app(replay: bool | None = None) -> Flask:
     @app.get("/last")
     def last_all():
         return jsonify(
-            {
-                area: {"count": s.count, "frame": s.frame, "ts": s.ts, "latency_ms": round(s.latency_ms, 1)}
+            tick_seconds=replayer.tick_seconds,
+            areas={
+                area: {
+                    "count": s.count,
+                    "frame": s.frame,
+                    "ts": s.ts,
+                    "latency_ms": round(s.latency_ms, 1),
+                    "history": [[round(ts, 3), n] for ts, n in replayer.recent(area)],
+                }
                 for area in replayer.areas()
                 if (s := replayer.snapshot(area))
-            }
+            },
         )
 
     @app.get("/last/<area>.jpg")

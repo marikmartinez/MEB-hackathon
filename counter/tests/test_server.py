@@ -61,7 +61,9 @@ def test_tick_loops_frames_and_serves_last(client):
     assert third["hall-a"] == 4  # and looped back
 
     last = c.get("/last").get_json()
-    assert last["hall-a"]["count"] == 4
+    assert last["tick_seconds"] == 30
+    assert last["areas"]["hall-a"]["count"] == 4
+    assert [n for _, n in last["areas"]["hall-a"]["history"]] == [4, 2, 4]
     img = c.get("/last/hall-a.jpg")
     assert img.status_code == 200 and img.mimetype == "image/jpeg"
     assert c.get("/last/nowhere.jpg").status_code == 404
