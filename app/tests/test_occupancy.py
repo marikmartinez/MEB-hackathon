@@ -110,11 +110,62 @@ def test_counter_replay_areas_exist_in_venue():
 
 
 class FakeClient:
-    def __init__(self, data):
+    def __init__(self, data, frames=None):
         self.data = data
+        self.frames = frames or {}
+        self.frame_requests = []
 
     def last(self):
         return self.data
+
+    def frame(self, area_id):
+        self.frame_requests.append(area_id)
+        return self.frames.get(area_id)
+
+
+def test_frame_proxy():
+    client = FakeClient(None, frames={"hall-a": b"\xff\xd8jpeg"})
+    c = create_app(occupancy.blueprint(client, [AREA])).test_client()
+    resp = c.get("/api/occupancy/hall-a/frame.jpg")
+    assert resp.status_code == 200 and resp.mimetype == "image/jpeg"
+    assert resp.data == b"\xff\xd8jpeg" and resp.headers["Cache-Control"] == "no-store"
+
+
+def test_frame_proxy_only_forwards_venue_ids():
+    client = FakeClient(None, frames={})
+    c = create_app(occupancy.blueprint(client, [AREA])).test_client()
+    assert c.get("/api/occupancy/hall-a/frame.jpg").status_code == 404  # no frame yet
+    assert c.get("/api/occupancy/nowhere/frame.jpg").status_code == 404
+    assert c.get("/api/occupancy/..%2Fmetrics/frame.jpg").status_code == 404
+    assert client.frame_requests == ["hall-a"]  # unknown ids never reach the counter
+
+
+def test_counter_client_frame(tmp_path):
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/last/hall-a.jpg":
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"img")
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def log_message(self, *a):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        client = occupancy.CounterClient(f"http://127.0.0.1:{server.server_port}")
+        assert client.frame("hall-a") == b"img"
+        assert client.frame("room-101") is None
+    finally:
+        server.shutdown()
+    assert occupancy.CounterClient("http://127.0.0.1:9").frame("hall-a") is None
 
 
 def test_api(monkeypatch):

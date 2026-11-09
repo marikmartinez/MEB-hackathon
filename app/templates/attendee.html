@@ -9,6 +9,15 @@
 <body>
   <main>
     <h1>Find a talk with room to spare</h1>
+    <section class="dashboard" aria-labelledby="rooms-title">
+      <div class="dashboard-head">
+        <h2 id="rooms-title">Rooms right now</h2>
+        <p id="rooms-summary" class="dashboard-summary" aria-live="polite">Loading…</p>
+      </div>
+      <p id="rooms-note" class="note" role="status" hidden></p>
+      <ul id="rooms-now" class="rooms"></ul>
+    </section>
+    <h2>Find a talk</h2>
     <label for="search">Search talks</label>
     <input id="search" type="search" placeholder="Postgres, security, GPUs…" autocomplete="off">
     <label for="talk">Pick a talk</label>
@@ -16,9 +25,20 @@
     <p id="error" class="error" role="alert" hidden></p>
     <section id="status" aria-live="polite"></section>
     <section id="alternatives" aria-live="polite"></section>
-    <p class="version">{{ team }} · version {{ version }}</p>
   </main>
+  <footer class="references" aria-labelledby="refs-title">
+    <h2 id="refs-title">References</h2>
+    <p>Room feeds replay footage from the Mall dataset, by the authors below.</p>
+    <ol>
+      <li>C. C. Loy, S. Gong, and T. Xiang. <cite>From Semi-Supervised to Transfer Counting of Crowds.</cite> In Proceedings of IEEE International Conference on Computer Vision (ICCV), pp. 2256–2263, 2013.</li>
+      <li>K. Chen, S. Gong, T. Xiang, and C. C. Loy. <cite>Cumulative Attribute Space for Age and Crowd Density Estimation.</cite> In Proceedings of IEEE Conference on Computer Vision and Pattern Recognition (CVPR, Oral), pp. 2467–2474, 2013.</li>
+      <li>C. C. Loy, K. Chen, S. Gong, and T. Xiang. <cite>Crowd Counting and Profiling: Methodology and Evaluation.</cite> In S. Ali, K. Nishino, D. Manocha, and M. Shah (Eds.), Modeling, Simulation and Visual Analysis of Crowds, Springer, vol. 11, pp. 347–382, 2013.</li>
+      <li>K. Chen, C. C. Loy, S. Gong, and T. Xiang. <cite>Feature Mining for Localised Crowd Counting.</cite> British Machine Vision Conference (BMVC), 2012.</li>
+    </ol>
+    <p class="version">{{ team }} · version {{ version }}</p>
+  </footer>
   <script id="rooms" type="application/json">{{ rooms|tojson }}</script>
   <script src="{{ url_for('static', filename='attendee.js') }}"></script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>
 </html>

@@ -15,6 +15,12 @@
   --full-text: #8f1d1d;
   --unknown-bg: #e7eaee;
   --unknown-text: #4a5462;
+  /* Meter fills: fixed status steps (good / warning / serious / critical).
+     Never colour alone: every meter sits next to an icon + text badge. */
+  --low-fill: #0ca30c;
+  --medium-fill: #fab219;
+  --high-fill: #ec835a;
+  --full-fill: #d03b3b;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -88,4 +94,100 @@ input, select {
 .badge-unknown { background: var(--unknown-bg); color: var(--unknown-text); }
 
 .error { margin-top: 16px; color: var(--full-text); }
+
+/* Rooms-right-now dashboard */
+.dashboard-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.dashboard-head h2 { margin: 0; }
+.dashboard-summary { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.rooms { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+
+.room {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* The whole card header is the button that opens the camera feed. */
+.room-toggle {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 12px 16px 12px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.room-toggle:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.room-toggle:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; border-radius: 10px; }
+.room-toggle > span { display: block; }
+.room-head { display: flex !important; justify-content: space-between; align-items: center; gap: 12px; padding-right: 24px; }
+.chevron {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+.room.open .chevron { transform: rotate(180deg); }
+
+.feed { padding: 0 16px 14px; }
+.feed-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  background: var(--unknown-bg);
+}
+.feed-caption { margin: 6px 0 0; color: var(--muted); font-size: 0.8rem; }
+.room-name { font-weight: 600; }
+.badge-icon { display: inline-block; width: 1em; text-align: center; }
+
+/* Track is a lighter step of the same hue as the fill, so the state reads
+   across the whole bar. */
+.meter {
+  height: 8px;
+  margin: 10px 0 6px;
+  border-radius: 999px;
+  background: var(--unknown-bg);
+  overflow: hidden;
+}
+.meter-fill { display: block; height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+.room-low .meter { background: var(--low-bg); }
+.room-low .meter-fill { background: var(--low-fill); }
+.room-medium .meter { background: var(--medium-bg); }
+.room-medium .meter-fill { background: var(--medium-fill); }
+.room-high .meter { background: var(--high-bg); }
+.room-high .meter-fill { background: var(--high-fill); }
+.room-full .meter { background: var(--full-bg); }
+.room-full .meter-fill { background: var(--full-fill); }
+.room-detail { margin: 0; color: var(--muted); font-size: 0.85rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .meter-fill, .chevron { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .meter { border: 1px solid CanvasText; }
+  .meter-fill { background: CanvasText; }
+}
 .version { margin-top: 40px; color: var(--muted); font-size: 0.8rem; }
+
+.references {
+  max-width: 640px;
+  margin: 16px auto 0;
+  padding: 16px 16px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.references h2 { margin: 0 0 6px; font-size: 0.9rem; color: var(--text); }
+.references p { margin: 0 0 8px; }
+.references ol { margin: 0; padding-left: 1.4em; }
+.references li { margin-bottom: 6px; }
+.references cite { font-style: italic; color: var(--text); }
+.references .version { margin-top: 16px; }

@@ -18,11 +18,13 @@ import logging
 import os
 import threading
 import time
+import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from flask import Blueprint, jsonify
+
+from flask import Blueprint, Response, jsonify
 from search.levels import level_for
 
 log = logging.getLogger(__name__)
@@ -31,6 +33,7 @@ VENUE_PATH = Path(__file__).parent / "data" / "venue.json"
 COUNTER_URL = os.environ.get("COUNTER_URL", "http://counter")
 FETCH_TIMEOUT = 2.0
 CACHE_SECONDS = 5.0
+MAX_FRAME_BYTES = 2 * 1024 * 1024  # annotated frames are ~50 KB; refuse anything odd
 
 EMA_ALPHA = 0.5
 MAX_OVER_CAPACITY = 1.5
@@ -127,6 +130,20 @@ class CounterClient:
             self._cached = (time.monotonic(), data)
             return data
 
+    def frame(self, area_id: str) -> bytes | None:
+        """Latest annotated JPEG for an area, or None if there isn't one.
+
+        area_id must already be checked against the venue: it goes into the URL.
+        """
+        url = f"{self.base_url}/last/{urllib.parse.quote(area_id, safe='')}.jpg"
+        try:
+            with urllib.request.urlopen(url, timeout=FETCH_TIMEOUT) as resp:
+                data = resp.read(MAX_FRAME_BYTES + 1)
+        except Exception as e:  # 404 = no frame yet; anything else = counter down
+            log.info("no frame for %s: %s", area_id, e)
+            return None
+        return data if len(data) <= MAX_FRAME_BYTES else None
+
 
 def snapshot(venue: list[dict], counter_data: dict | None, now: float | None = None) -> dict:
     now = time.time() if now is None else now
@@ -155,5 +172,15 @@ def blueprint(client: CounterClient | None = None, venue: list[dict] | None = No
             if a["id"] == area_id:
                 return jsonify(source=snap["source"], **a)
         return jsonify(error=f"unknown area {area_id}"), 404
+
+    @bp.get("/api/occupancy/<area_id>/frame.jpg")
+    def area_frame(area_id: str):
+        # Only venue ids reach the counter: no arbitrary paths through this proxy.
+        if area_id not in {a["id"] for a in venue}:
+            return jsonify(error=f"unknown area {area_id}"), 404
+        data = client.frame(area_id)
+        if data is None:
+            return jsonify(error="no camera frame yet"), 404
+        return Response(data, mimetype="image/jpeg", headers={"Cache-Control": "no-store"})
 
     return bp
