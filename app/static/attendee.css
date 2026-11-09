@@ -175,3 +175,19 @@ input, select {
   .meter-fill { background: CanvasText; }
 }
 .version { margin-top: 40px; color: var(--muted); font-size: 0.8rem; }
+
+.references {
+  max-width: 640px;
+  margin: 16px auto 0;
+  padding: 16px 16px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.references h2 { margin: 0 0 6px; font-size: 0.9rem; color: var(--text); }
+.references p { margin: 0 0 8px; }
+.references ol { margin: 0; padding-left: 1.4em; }
+.references li { margin-bottom: 6px; }
+.references cite { font-style: italic; color: var(--text); }
+.references .version { margin-top: 16px; }
