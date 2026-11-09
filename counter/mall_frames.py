@@ -16,14 +16,15 @@ from pathlib import Path
 
 FRAMES = Path(__file__).parent / "frames"
 
-# area -> first Mall frame (1-based) of its stretch. Picked from the
-# dataset's counts: 101-300 is quieter (~24 people), 701-1000 busier (~36).
+# venue.json area id -> first Mall frame (1-based) of its stretch. Busiest
+# stretches (36-38 people) go to the 60-capacity areas, the quietest (22-23)
+# to big ones, so the dashboard shows a mix of levels.
 DEFAULT_STRETCHES = {
-    "hall-a": 701,
-    "hall-b": 101,
-    "corridor-1": 901,
-    "corridor-2": 1301,
-    "food": 201,
+    "room-104": 351,  # ~38 people / 60
+    "room-103": 901,  # ~37 / 60
+    "corridor-north": 401,  # ~36 / 60
+    "corridor-east": 251,  # ~22 / 80
+    "atrium": 151,  # ~23 / 400
 }
 
 

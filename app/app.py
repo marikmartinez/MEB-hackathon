@@ -7,6 +7,8 @@ import os
 
 from flask import Flask, jsonify, render_template
 
+import occupancy
+
 TEAM = os.environ.get("TEAM_NAME", "your-team")
 VERSION = os.environ.get("APP_VERSION", "dev")
 
@@ -18,8 +20,9 @@ SESSIONS = [
 ]
 
 
-def create_app():
+def create_app(occupancy_bp=None):
     app = Flask(__name__)
+    app.register_blueprint(occupancy_bp or occupancy.blueprint())
     team = os.environ.get("TEAM_NAME", "your-team")
     version = os.environ.get("APP_VERSION", "dev")
 
