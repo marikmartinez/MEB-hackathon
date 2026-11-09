@@ -57,6 +57,16 @@ Measured locally with the 1280px model, 1 CPU and a 768Mi limit, 5 areas: 372–
 
 Licence: the YOLO11 weights are AGPL-3.0 (Ultralytics); this repo is public, which satisfies that.
 
+## First deploy: make the image public
+
+The `build-and-deploy` action pushes the counter as its own GHCR package, `ghcr.io/marikmartinez/meb-hackathon-counter`. GHCR makes a new package **private**, and the cluster pulls without credentials, so until it's public the `counter` pod sits in `ImagePullBackOff`. Once, after the first run that builds it:
+
+GitHub → your profile → **Packages** → `meb-hackathon-counter` → **Package settings** → **Change visibility** → **Public**.
+
+The pod picks it up on its next pull retry (or restart it with Radar's `manage_workload`).
+
+Also expect a short `ImagePullBackOff` on that first merge even once it's public: Argo CD syncs the merge commit, whose `counter` tag is still `latest`, before the action has pushed any counter image. It clears by itself when the action's `deploy: <sha>` commit sets the real tag. Later deploys always have the image before the tag changes.
+
 ## Frames on the cluster
 
 The replay frames are **not** in git or the image. On the cluster they come from one Secret per room (`counter-frames-<room>`), mounted at `frames/<room>/` by `deploy/counter-deployment.yaml`. To create or refresh them, with kubectl set up (top-level README, "kubectl"):
