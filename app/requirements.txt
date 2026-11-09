@@ -1,0 +1,3 @@
+flask
+gunicorn
+elasticsearch>=8.15,<9
