@@ -34,6 +34,18 @@ spec:
             # Tuned on the Mall dataset with the 1280px model (counter/README.md).
             - name: CONF
               value: "0.15"
+            # Post every count to the app, which stores it in Elasticsearch
+            # (occupancy-history) for the organizer dashboard. In-cluster
+            # Service, not the public URL.
+            - name: OCCUPANCY_URL
+              value: http://app/api/occupancy
+            # Same token the app checks; the app refuses posts without it.
+            - name: OCCUPANCY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: es-credentials
+                  key: occupancy-token
+                  optional: true
           resources:
             requests:
               cpu: 250m
