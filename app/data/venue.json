@@ -1,0 +1,10 @@
+{
+  "_comment": "Area ids must match the counter's frames/<area>/ folders. capacity = people the area holds comfortably. neighbours = areas you can walk to directly (used by route planning).",
+  "areas": [
+    {"id": "hall-a", "name": "Hall A", "kind": "talk", "capacity": 80, "neighbours": ["corridor-1"]},
+    {"id": "hall-b", "name": "Hall B", "kind": "talk", "capacity": 60, "neighbours": ["corridor-2"]},
+    {"id": "corridor-1", "name": "North corridor", "kind": "corridor", "capacity": 40, "neighbours": ["hall-a", "corridor-2", "food"]},
+    {"id": "corridor-2", "name": "South corridor", "kind": "corridor", "capacity": 40, "neighbours": ["hall-b", "corridor-1"]},
+    {"id": "food", "name": "Food station", "kind": "amenity", "capacity": 30, "neighbours": ["corridor-1"]}
+  ]
+}
