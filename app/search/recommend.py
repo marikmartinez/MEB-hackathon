@@ -2,12 +2,14 @@
 import json
 import logging
 import time
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 
 from elasticsearch import ApiError, TransportError
 
 from search.client import get_client
+from search.levels import FULL_RATIO, STALE_SECONDS, level_for
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,6 @@ TALK_FIELDS = [
 ]
 OVERFETCH = 20
 OCCUPANCY_TTL_SECONDS = 10
-FULL_RATIO = 0.9
 
 # The last occupancy read is kept after it expires, so the fallback can still
 # use crowd levels when Elasticsearch goes down.
@@ -40,18 +41,6 @@ def crowd_penalty(ratio):
     return min(max(ratio, 0.0), 1.0) ** 2
 
 
-def level_for(ratio):
-    if ratio is None:
-        return "unknown"
-    if ratio < 0.5:
-        return "low"
-    if ratio < 0.75:
-        return "medium"
-    if ratio < FULL_RATIO:
-        return "high"
-    return "full"
-
-
 def _read_occupancy(client):
     global _occupancy, _occupancy_read_at
     now = time.monotonic()
@@ -61,7 +50,7 @@ def _read_occupancy(client):
         result = client.options(max_retries=0).search(
             index="occupancy",
             size=200,
-            source=["area", "ratio", "level"],
+            source=["area", "ratio", "level", "ts"],
             query={"match_all": {}},
         )
     except (ApiError, TransportError):
@@ -72,12 +61,24 @@ def _read_occupancy(client):
     return _occupancy
 
 
+def _is_fresh(reading, now):
+    try:
+        age = now - datetime.fromisoformat(reading["ts"]).timestamp()
+    except (KeyError, TypeError, ValueError):
+        return False
+    return age <= STALE_SECONDS
+
+
 def _room_level(occupancy, room_id):
     room = occupancy.get(room_id, {})
     return room.get("level") or level_for(room.get("ratio"))
 
 
 def _rerank(talk, candidates, occupancy, k, source):
+    # Checked here rather than when reading, so the fallback's last known
+    # levels expire too. A stale room counts as unknown, with no penalty.
+    now = time.time()
+    occupancy = {area: doc for area, doc in occupancy.items() if _is_fresh(doc, now)}
     top = max((relevance for _, relevance in candidates), default=0) or 1
     results = []
     for candidate, relevance in candidates:

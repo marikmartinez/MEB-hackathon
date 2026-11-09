@@ -8,7 +8,12 @@ resources:
   - deployment.yaml
   - service.yaml
   - httproute.yaml
+  - counter-deployment.yaml
+  - counter-service.yaml
 images:
   - name: app
     newName: ghcr.io/marikmartinez/meb-hackathon
-    newTag: c773917
+    newTag: 3884d81
+  - name: counter
+    newName: ghcr.io/marikmartinez/meb-hackathon-counter
+    newTag: latest

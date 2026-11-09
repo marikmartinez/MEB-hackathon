@@ -2,7 +2,7 @@
 
     python sim.py --url http://localhost:8080 --interval 3
 
-Set OCCUPANCY_TOKEN if the app requires one.
+Set OCCUPANCY_TOKEN to the app's token, or every post is refused.
 """
 import argparse
 import json

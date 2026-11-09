@@ -58,12 +58,13 @@ def create_app(occupancy_bp=None):
 
     @app.post("/api/occupancy")
     def api_occupancy():
-        # This route is on the public URL: set OCCUPANCY_TOKEN to lock it.
+        # This route is on the public URL, so refuse writes without a token.
         token = os.environ.get("OCCUPANCY_TOKEN")
-        if token:
-            supplied = request.headers.get("Authorization", "").encode()
-            if not hmac.compare_digest(supplied, f"Bearer {token}".encode()):
-                return jsonify(error="unauthorized"), 401
+        if not token:
+            return jsonify(error="occupancy writes aren't configured"), 503
+        supplied = request.headers.get("Authorization", "").encode()
+        if not hmac.compare_digest(supplied, f"Bearer {token}".encode()):
+            return jsonify(error="unauthorized"), 401
 
         data = request.get_json(silent=True)
         if not isinstance(data, dict):

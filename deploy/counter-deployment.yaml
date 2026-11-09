@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: counter
+  labels:
+    app: counter
+spec:
+  # One replica on purpose: it runs the replay loop and holds the recent
+  # counts the app reads. A second replica would count every frame twice.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: counter
+  template:
+    metadata:
+      labels:
+        app: counter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: counter
+          image: counter
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TICK_SECONDS
+              value: "30"
+            - name: THREADS
+              value: "1"
+            # Tuned on the Mall dataset with the 1280px model (counter/README.md).
+            - name: CONF
+              value: "0.15"
+          resources:
+            requests:
+              cpu: 250m
+              # Measured 372-391 MiB steady with the 1280px model.
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          # Replay frames, one folder per room. They come from Secrets created
+          # by hand with scripts/upload-frames.sh and are never in git or the
+          # image (Mall dataset, licence unconfirmed). optional: the counter
+          # starts without them and those rooms report "unknown".
+          volumeMounts:
+            - { name: frames-hall-a, mountPath: /srv/counter/frames/hall-a, readOnly: true }
+            - { name: frames-hall-b, mountPath: /srv/counter/frames/hall-b, readOnly: true }
+            - { name: frames-room-101, mountPath: /srv/counter/frames/room-101, readOnly: true }
+            - { name: frames-room-102, mountPath: /srv/counter/frames/room-102, readOnly: true }
+            - { name: frames-room-103, mountPath: /srv/counter/frames/room-103, readOnly: true }
+            - { name: frames-room-104, mountPath: /srv/counter/frames/room-104, readOnly: true }
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            # A busy inference thread can delay a probe; don't restart on one miss.
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - { name: frames-hall-a, secret: { secretName: counter-frames-hall-a, optional: true } }
+        - { name: frames-hall-b, secret: { secretName: counter-frames-hall-b, optional: true } }
+        - { name: frames-room-101, secret: { secretName: counter-frames-room-101, optional: true } }
+        - { name: frames-room-102, secret: { secretName: counter-frames-room-102, optional: true } }
+        - { name: frames-room-103, secret: { secretName: counter-frames-room-103, optional: true } }
+        - { name: frames-room-104, secret: { secretName: counter-frames-room-104, optional: true } }

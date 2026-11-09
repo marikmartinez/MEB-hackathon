@@ -23,7 +23,9 @@ import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+
 from flask import Blueprint, Response, jsonify
+from search.levels import level_for
 
 log = logging.getLogger(__name__)
 
@@ -39,17 +41,6 @@ SPIKE_FRACTION = 0.5
 SPIKE_MIN_PEOPLE = 5
 STALE_TICKS = 3
 DEFAULT_TICK_SECONDS = 30.0
-
-# (upper bound of ratio, level), checked in order
-LEVELS = [(0.5, "low"), (0.8, "medium"), (1.0, "high")]
-
-
-def level_for(ratio: float) -> str:
-    for bound, name in LEVELS:
-        if ratio < bound:
-            return name
-    return "full"
-
 
 @dataclass
 class AreaStatus:

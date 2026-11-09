@@ -17,7 +17,7 @@ def hist(*counts, step=30.0, end=NOW):
 
 
 @pytest.mark.parametrize(
-    "ratio,level", [(0, "low"), (0.49, "low"), (0.5, "medium"), (0.79, "medium"), (0.8, "high"), (1.0, "full"), (1.4, "full")]
+    "ratio,level", [(None, "unknown"), (0, "low"), (0.49, "low"), (0.5, "medium"), (0.74, "medium"), (0.75, "high"), (0.89, "high"), (0.9, "full"), (1.0, "full"), (1.4, "full")]
 )
 def test_levels(ratio, level):
     assert level_for(ratio) == level
