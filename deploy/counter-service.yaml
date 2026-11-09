@@ -1,0 +1,14 @@
+# In-cluster only: the app reads http://counter/last. Not exposed publicly.
+apiVersion: v1
+kind: Service
+metadata:
+  name: counter
+  labels:
+    app: counter
+spec:
+  selector:
+    app: counter
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

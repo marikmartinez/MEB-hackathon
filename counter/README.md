@@ -56,3 +56,16 @@ curl -X POST --data-binary @counter/samples/bus.jpg localhost:8081/count
 Measured locally with the 1280px model, 1 CPU and a 768Mi limit, 5 areas: 372–391 MiB memory (steady), ~450 ms per image, so one tick of 5 areas takes about 2 s of one core.
 
 Licence: the YOLO11 weights are AGPL-3.0 (Ultralytics); this repo is public, which satisfies that.
+
+## Frames on the cluster
+
+The replay frames are **not** in git or the image. On the cluster they come from one Secret per room (`counter-frames-<room>`), mounted at `frames/<room>/` by `deploy/counter-deployment.yaml`. To create or refresh them, with kubectl set up (top-level README, "kubectl"):
+
+```bash
+python -m counter.mall_frames ~/path/to/mall_dataset
+./scripts/upload-frames.sh
+```
+
+Each Secret must stay under 1 MiB (20 Mall frames ≈ 880 KiB); the script checks. The counter sees new frames within about a minute without a restart. A room whose Secret doesn't exist reports "unknown".
+
+Note: the attendee page's room feed (`/api/occupancy/<room>/frame.jpg`) shows these frames on the public URL.
