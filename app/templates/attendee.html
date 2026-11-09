@@ -4,21 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ team }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='attendee.css') }}">
 </head>
 <body>
-  <main>
-    <h1>Find a talk with room to spare</h1>
-    <label for="search">Search talks</label>
-    <input id="search" type="search" placeholder="Postgres, security, GPUs…" autocomplete="off">
-    <label for="talk">Pick a talk</label>
-    <select id="talk"><option value="">Loading talks…</option></select>
-    <p id="error" class="error" role="alert" hidden></p>
-    <section id="status" aria-live="polite"></section>
-    <section id="alternatives" aria-live="polite"></section>
-    <p class="version">{{ team }} · version {{ version }}</p>
-  </main>
-  <script id="rooms" type="application/json">{{ rooms|tojson }}</script>
-  <script src="{{ url_for('static', filename='attendee.js') }}"></script>
+  <h1>{{ team }}</h1>
+  <p>version {{ version }}</p>
+  <ul>
+    {% for s in sessions %}
+    <li>{{ s.time }} · {{ s.room }} · {{ s.title }}</li>
+    {% endfor %}
+  </ul>
 </body>
 </html>
