@@ -1,6 +1,7 @@
 # Kept out of the image build context.
 .git
-**/node_modules
+**/__pycache__
+**/.venv
 **/*kubeconfig*
 **/.env
 **/.env.*
