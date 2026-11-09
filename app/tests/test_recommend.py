@@ -161,6 +161,21 @@ def test_query_is_limited_to_overlapping_talks_and_excludes_the_chosen_one():
     assert query["minimum_should_match"] == 1
 
 
+def test_stale_and_fresh_readings_are_told_apart():
+    rooms = {
+        **occupancy(age=r.STALE_SECONDS + 1, hall_a=0.9),
+        **occupancy(age=r.STALE_SECONDS - 5, hall_b=0.2),
+    }
+    client = es_client(rooms)
+    result = recommend_with(client)
+
+    assert result["crowd_level"] == "unknown"  # hall-a is stale
+    in_hall_b = next(item for item in result["results"] if item["id"] == "t17")
+    assert in_hall_b["why"]["crowd_level"] == "low"
+    call = next(c for c in client.search.call_args_list if c.kwargs["index"] == "occupancy")
+    assert call.kwargs["source"] == ["area", "ratio", "level", "ts"]
+
+
 def test_occupancy_is_cached_between_requests():
     client = es_client()
     recommend_with(client)
