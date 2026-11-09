@@ -4,19 +4,66 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ team }} organizer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='attendee.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='organizer.css') }}">
 </head>
-<body>
-  <h1>{{ team }} organizer</h1>
-  <p>version {{ version }}</p>
-  <table>
-    <thead>
-      <tr><th>Time</th><th>Room</th><th>Talk</th></tr>
-    </thead>
-    <tbody>
-      {% for s in sessions %}
-      <tr><td>{{ s.time }}</td><td>{{ s.room }}</td><td>{{ s.title }}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<body class="organizer">
+  <main>
+    <h1>Organizer dashboard</h1>
+    <p class="lede">Room occupancy from the people counter, stored in Elasticsearch. Percentages are of each room's capacity, smoothed over recent frames.</p>
+    <p id="source-note" class="note" role="status" hidden></p>
+
+    <section aria-labelledby="now-title">
+      <h2 id="now-title">Right now</h2>
+      <div class="tiles">
+        <div class="tile"><p class="tile-label">People in rooms</p><p id="tile-people" class="tile-value">–</p><p id="tile-people-sub" class="tile-sub"></p></div>
+        <div class="tile"><p class="tile-label">Rooms busy or full</p><p id="tile-busy" class="tile-value">–</p><p id="tile-busy-sub" class="tile-sub"></p></div>
+        <div class="tile"><p class="tile-label">Fullest talk on now</p><p id="tile-talk" class="tile-value tile-value-text">–</p><p id="tile-talk-sub" class="tile-sub"></p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="history-title">
+      <div class="section-head">
+        <h2 id="history-title">Rooms over time</h2>
+        <div class="controls">
+          <div class="segmented" role="radiogroup" aria-label="Time range">
+            <button type="button" role="radio" data-range="day" aria-checked="true">Conference day</button>
+            <button type="button" role="radio" data-range="4h" aria-checked="false">Last 4 hours</button>
+            <button type="button" role="radio" data-range="1h" aria-checked="false">Last hour</button>
+          </div>
+          <button type="button" id="history-view" class="link-button" aria-pressed="false">Show as table</button>
+        </div>
+      </div>
+      <p id="history-summary" class="note"></p>
+      <div id="history" class="multiples" aria-describedby="history-summary"></div>
+      <div id="history-table" class="table-wrap" hidden></div>
+    </section>
+
+    <section aria-labelledby="talks-title">
+      <div class="section-head">
+        <h2 id="talks-title">Talks</h2>
+        <p id="talks-summary" class="note"></p>
+      </div>
+      <div class="table-wrap">
+        <table class="talks">
+          <thead>
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Talk</th>
+              <th scope="col">Room</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="num">Average</th>
+              <th scope="col" class="num">Peak</th>
+            </tr>
+          </thead>
+          <tbody id="talks"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="version">{{ team }} · version {{ version }}</p>
+  </main>
+  <div id="tooltip" class="tooltip" role="presentation" hidden></div>
+  <script src="{{ url_for('static', filename='organizer.js') }}"></script>
 </body>
 </html>

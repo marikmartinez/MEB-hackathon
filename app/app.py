@@ -5,9 +5,12 @@ deploy/ keep working.
 """
 import hmac
 import os
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template, request
 
+from search import history
+from search.levels import level_for
 from search.occupancy import load_rooms, record_occupancy
 from search.recommend import TalkNotFound, list_talks, recommend
 
@@ -93,8 +96,71 @@ def create_app(occupancy_bp=None):
 
     @app.get("/organizer")
     def organizer():
-        return render_template(
-            "organizer.html", team=team, version=version, sessions=SESSIONS
+        return render_template("organizer.html", team=team, version=version)
+
+    @app.get("/api/organizer/history")
+    def api_organizer_history():
+        range_name = request.args.get("range", history.DEFAULT_RANGE)
+        if range_name not in (*history.RANGES, history.DEFAULT_RANGE):
+            return jsonify(error="range must be day, 4h or 1h"), 400
+        now = datetime.now(timezone.utc)
+        start, end = history.window(range_name, list_talks()["talks"], now)
+        data = history.room_history(start, end, rooms)
+        series = (data or {}).get("rooms", {})
+        return jsonify(
+            source="elasticsearch" if data is not None else "unavailable",
+            range=range_name,
+            start=int(start.timestamp() * 1000),
+            end=int(end.timestamp() * 1000),
+            interval=(data or {}).get("interval"),
+            rooms=[
+                {
+                    "id": room_id,
+                    "name": room["name"],
+                    "capacity": room["capacity"],
+                    "points": series.get(room_id, []),
+                }
+                for room_id, room in rooms.items()
+            ],
+        )
+
+    @app.get("/api/organizer/talks")
+    def api_organizer_talks():
+        now = datetime.now(timezone.utc)
+        talks = list_talks()["talks"]
+        stats = history.talk_stats(talks, now)
+        out = []
+        for talk in talks:
+            room = rooms.get(talk["room"], {})
+            capacity = room.get("capacity")
+            s = (stats or {}).get(talk["id"], {})
+            peak_ratio = s.get("peak_ratio")
+            out.append({
+                "id": talk["id"],
+                "title": talk["title"],
+                "speaker": talk["speaker"],
+                "track": talk.get("track"),
+                "room": talk["room"],
+                "room_name": room.get("name", talk["room"]),
+                "capacity": capacity,
+                "start": talk["start"],
+                "end": talk["end"],
+                "status": history.talk_status(talk, now),
+                "readings": s.get("readings", 0),
+                "avg_ratio": s.get("avg_ratio"),
+                "avg_people": s.get("avg_people"),
+                "peak_ratio": peak_ratio,
+                # From the smoothed peak, so one bad frame can't set it.
+                "peak_people": (
+                    round(peak_ratio * capacity)
+                    if peak_ratio is not None and capacity else None
+                ),
+                "peak_level": level_for(peak_ratio),
+            })
+        return jsonify(
+            source="elasticsearch" if stats is not None else "unavailable",
+            now=int(now.timestamp() * 1000),
+            talks=out,
         )
 
     return app
