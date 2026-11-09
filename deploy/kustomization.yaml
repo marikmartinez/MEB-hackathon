@@ -11,4 +11,4 @@ resources:
 images:
   - name: app
     newName: ghcr.io/marikmartinez/meb-hackathon
-    newTag: bb504bc
+    newTag: c76cea2
