@@ -13,7 +13,7 @@ resources:
 images:
   - name: app
     newName: ghcr.io/marikmartinez/meb-hackathon
-    newTag: 9a66078
+    newTag: e73581c
   - name: counter
     newName: ghcr.io/marikmartinez/meb-hackathon-counter
-    newTag: 9a66078
+    newTag: e73581c
