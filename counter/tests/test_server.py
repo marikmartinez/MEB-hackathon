@@ -134,3 +134,18 @@ def test_tick_posts_occupancy(frames):
 def test_unreachable_app_does_not_break_counting(frames):
     snaps = Replayer(PersonCounter(), frames, occupancy_url="http://127.0.0.1:9/nope", post_timeout=0.5).tick()
     assert len(snaps) == 2
+
+
+def test_replay_reads_secret_volume_layout(tmp_path):
+    """Kubernetes mounts a Secret as symlinks into a hidden timestamped dir."""
+    room = tmp_path / "hall-a"
+    data = room / "..2026_11_09_16_00_00.000000001"
+    data.mkdir(parents=True)
+    shutil.copy(SAMPLES / "bus.jpg", data / "0001.jpg")
+    (room / "..data").symlink_to(data.name)
+    (room / "0001.jpg").symlink_to("..data/0001.jpg")
+    (tmp_path / "room-101").mkdir()  # optional Secret that doesn't exist: empty dir
+
+    replayer = Replayer(PersonCounter(), tmp_path)
+    assert {a: [p.name for p in f] for a, f in replayer.areas().items()} == {"hall-a": ["0001.jpg"]}
+    assert [(s.area, s.count) for s in replayer.tick()] == [("hall-a", 4)]
