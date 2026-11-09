@@ -21,8 +21,8 @@ TALKS_MAPPINGS = {
     }
 }
 
-# One document per area, written by the CV pipeline and overwritten each time.
-# area must match an area id in data/venue.json.
+# One document per room, written by the CV pipeline and overwritten each time.
+# area must match a room id in data/venue.json.
 OCCUPANCY_MAPPINGS = {
     "properties": {
         "area": {"type": "keyword"},
