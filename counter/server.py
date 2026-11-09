@@ -11,12 +11,13 @@ CONF (0.15), THREADS (1), REPLAY (1 = run the replay loop).
 """
 from __future__ import annotations
 
+import io
 import logging
 import os
 from pathlib import Path
 
 from flask import Flask, Response, abort, jsonify, request
-from PIL import UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from counter import metrics
@@ -24,6 +25,11 @@ from counter.model import PersonCounter
 from counter.replay import Replayer
 
 MAX_UPLOAD = 8 * 1024 * 1024
+# MAX_UPLOAD limits the compressed bytes, not the decoded size: a flat PNG
+# under 8 MB can decode to hundreds of MB. Cap pixels (read from the header,
+# before decoding) at 4K UHD, about 25 MB as RGB, so 4 concurrent uploads
+# stay well inside the pod's 768Mi limit.
+MAX_PIXELS = 3840 * 2160
 
 
 def create_app(replay: bool | None = None) -> Flask:
@@ -65,8 +71,12 @@ def create_app(replay: bool | None = None) -> Flask:
             metrics.COUNTS_REJECTED.labels(reason="empty_upload").inc()
             return jsonify(error="send an image as the body or as multipart field 'image'"), 400
         try:
-            result = counter.count(data)
-        except (UnidentifiedImageError, OSError):
+            img = Image.open(io.BytesIO(data))  # reads the header only
+            if img.width * img.height > MAX_PIXELS:
+                metrics.COUNTS_REJECTED.labels(reason="too_large").inc()
+                return jsonify(error=f"image too large: max {MAX_PIXELS} pixels"), 413
+            result = counter.count(img)
+        except (UnidentifiedImageError, Image.DecompressionBombError, OSError):
             metrics.COUNTS_REJECTED.labels(reason="bad_image").inc()
             return jsonify(error="not a readable image"), 400
         metrics.INFERENCE_LATENCY.observe(result.latency_ms / 1000)

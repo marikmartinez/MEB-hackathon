@@ -1,10 +1,14 @@
+import io
 import json
 import shutil
+import struct
 import threading
+import zlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from counter.model import PersonCounter
 from counter.replay import Replayer
@@ -49,6 +53,38 @@ def test_count_rejects_bad_input(client):
     c, _ = client
     assert c.post("/count", data=b"").status_code == 400
     assert c.post("/count", data=b"not an image").status_code == 400
+
+
+def png_claiming(width: int, height: int) -> bytes:
+    """A tiny PNG whose header claims width x height (header is all PIL reads on open)."""
+    buf = io.BytesIO()
+    Image.new("L", (1, 1)).save(buf, format="PNG")
+    data = bytearray(buf.getvalue())
+    # IHDR chunk: 8-byte signature, 4 length, 4 type, then width/height at 16..24.
+    data[16:24] = struct.pack(">II", width, height)
+    data[29:33] = struct.pack(">I", zlib.crc32(bytes(data[12:29])))
+    return bytes(data)
+
+
+def test_count_rejects_huge_pixel_count_before_decoding(client):
+    c, _ = client
+    # ~169M pixels: below PIL's own bomb error, would decode to ~500 MB as RGB
+    resp = c.post("/count", data=png_claiming(13000, 13000))
+    assert resp.status_code == 413
+    assert 'counts_rejected_total{reason="too_large"} 1.0' in c.get("/metrics").get_data(as_text=True)
+
+
+def test_count_maps_decompression_bomb_to_400(client):
+    c, _ = client
+    # > 2 x PIL's MAX_IMAGE_PIXELS: Image.open itself raises DecompressionBombError
+    assert c.post("/count", data=png_claiming(20000, 20000)).status_code == 400
+
+
+def test_count_accepts_4k_frame(client):
+    c, _ = client
+    buf = io.BytesIO()
+    Image.new("RGB", (3840, 2160), (40, 40, 40)).save(buf, format="JPEG")
+    assert c.post("/count", data=buf.getvalue()).get_json()["count"] == 0
 
 
 def test_tick_loops_frames_and_serves_last(client):

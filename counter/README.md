@@ -41,7 +41,7 @@ python -m venv .venv && .venv/bin/pip install -r counter/requirements-dev.txt
 |---|---|
 | `GET /healthz`, `/readyz` | probes |
 | `GET /metrics` | `inference_latency_seconds`, `people_count{area}`, `frames_processed_total{area}`, `counts_rejected_total{reason}`, `occupancy_posts_total{result}` |
-| `POST /count` | image as the body or multipart field `image` → `{count, latency_ms, boxes}` |
+| `POST /count` | image as the body or multipart field `image` → `{count, latency_ms, boxes}`. Max 8 MB and 3840×2160 pixels (413 above that) |
 | `GET /last` | latest count and last 10 `[ts, count]` per area (the app reads this) |
 | `GET /last/<area>.jpg` | latest frame with boxes drawn |
 
