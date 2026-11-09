@@ -6,6 +6,6 @@
 *.pem
 *.key
 
-node_modules/
-npm-debug.log*
+__pycache__/
+.venv/
 .DS_Store
