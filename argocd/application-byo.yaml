@@ -12,7 +12,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/sebastiancarter/MEB-hackathon.git
+    repoURL: https://github.com/marikmartinez/MEB-hackathon.git
     targetRevision: main
     path: deploy
   destination:
