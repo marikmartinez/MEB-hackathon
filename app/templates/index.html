@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ team }}</title>
+</head>
+<body>
+  <h1>{{ team }}</h1>
+  <p>version {{ version }}</p>
+  <ul>
+    {% for s in sessions %}
+    <li>{{ s.time }} · {{ s.room }} · {{ s.title }}</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

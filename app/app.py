@@ -7,6 +7,9 @@ import os
 
 from flask import Flask, jsonify, render_template
 
+TEAM = os.environ.get("TEAM_NAME", "your-team")
+VERSION = os.environ.get("APP_VERSION", "dev")
+
 SESSIONS = [
     {"id": 1, "time": "10:00", "room": "Main", "title": "Kickoff and sponsor talks"},
     {"id": 2, "time": "11:00", "room": "Everywhere", "title": "Build"},
@@ -50,3 +53,6 @@ def create_app():
 
 
 app = create_app()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))
