@@ -1,0 +1,5 @@
+{# Switch between the attendee and organizer views. Set `current` before including. #}
+<nav class="switcher" aria-label="Dashboards">
+  <a href="{{ url_for('attendee') }}"{% if current == 'attendee' %} aria-current="page"{% endif %}>Attendee</a>
+  <a href="{{ url_for('organizer') }}"{% if current == 'organizer' %} aria-current="page"{% endif %}>Organizer</a>
+</nav>

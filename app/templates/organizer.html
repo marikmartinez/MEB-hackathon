@@ -9,6 +9,7 @@
 </head>
 <body class="organizer">
   <main>
+    {% set current = 'organizer' %}{% include '_switcher.html' %}
     <h1>Organizer dashboard</h1>
     <p class="lede">Room occupancy from the people counter, stored in Elasticsearch. Percentages are of each room's capacity, smoothed over recent frames.</p>
     <p id="source-note" class="note" role="status" hidden></p>

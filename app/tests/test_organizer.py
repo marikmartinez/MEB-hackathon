@@ -163,6 +163,15 @@ def test_organizer_page_renders(client):
     assert resp.status_code == 200 and b"organizer.js" in resp.data
 
 
+@pytest.mark.parametrize("path, current, other", [
+    ("/", 'href="/" aria-current="page"', 'href="/organizer">'),
+    ("/organizer", 'href="/organizer" aria-current="page"', 'href="/">'),
+])
+def test_each_page_links_to_the_other(client, path, current, other):
+    html = client.get(path).get_data(as_text=True)
+    assert current in html and other in html
+
+
 def test_history_rejects_unknown_ranges(client):
     assert client.get("/api/organizer/history?range=7d").status_code == 400
 
