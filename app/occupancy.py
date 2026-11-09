@@ -53,7 +53,7 @@ def level_for(ratio: float) -> str:
 class AreaStatus:
     id: str
     name: str
-    kind: str
+    type: str  # room | corridor, from venue.json
     capacity: int
     level: str  # low | medium | high | full | unknown
     count: int | None = None  # smoothed
@@ -92,7 +92,7 @@ def smooth(history: list[tuple[float, int]], capacity: int) -> tuple[float | Non
 
 
 def area_status(area: dict, reading: dict | None, tick_seconds: float, now: float) -> AreaStatus:
-    status = AreaStatus(area["id"], area["name"], area.get("kind", "area"), area["capacity"], level="unknown")
+    status = AreaStatus(area["id"], area["name"], area.get("type", "area"), area["capacity"], level="unknown")
     if not reading or not reading.get("history"):
         return status
     history = [(float(ts), int(n)) for ts, n in reading["history"]]

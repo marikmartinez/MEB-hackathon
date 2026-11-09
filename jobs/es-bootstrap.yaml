@@ -1,0 +1,38 @@
+# One-off Job, kept out of deploy/ so Argo CD doesn't own it. Before creating it,
+# set the image tag to a built commit and give each run a new name: a Job's name
+# can't be reused. See examples/agent-workflows/README.md.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: es-bootstrap-001
+  namespace: team-meb
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: bootstrap
+          image: ghcr.io/marikmartinez/meb-hackathon:BUILT-TAG
+          command: [python, -m, search.bootstrap]
+          env:
+            - name: ES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: es-credentials
+                  key: url
+            - name: ES_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: es-credentials
+                  key: api-key
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            seccompProfile: {type: RuntimeDefault}
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 384Mi}

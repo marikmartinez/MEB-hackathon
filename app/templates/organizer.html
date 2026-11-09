@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ team }} organizer</title>
+</head>
+<body>
+  <h1>{{ team }} organizer</h1>
+  <p>version {{ version }}</p>
+  <table>
+    <thead>
+      <tr><th>Time</th><th>Room</th><th>Talk</th></tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr><td>{{ s.time }}</td><td>{{ s.room }}</td><td>{{ s.title }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

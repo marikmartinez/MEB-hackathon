@@ -1,10 +1,26 @@
 {
-  "_comment": "Area ids must match the counter's frames/<area>/ folders. capacity = people the area holds comfortably. neighbours = areas you can walk to directly (used by route planning).",
   "areas": [
-    {"id": "hall-a", "name": "Hall A", "kind": "talk", "capacity": 80, "neighbours": ["corridor-1"]},
-    {"id": "hall-b", "name": "Hall B", "kind": "talk", "capacity": 60, "neighbours": ["corridor-2"]},
-    {"id": "corridor-1", "name": "North corridor", "kind": "corridor", "capacity": 40, "neighbours": ["hall-a", "corridor-2", "food"]},
-    {"id": "corridor-2", "name": "South corridor", "kind": "corridor", "capacity": 40, "neighbours": ["hall-b", "corridor-1"]},
-    {"id": "food", "name": "Food station", "kind": "amenity", "capacity": 30, "neighbours": ["corridor-1"]}
+    { "id": "atrium", "name": "Atrium", "type": "corridor", "capacity": 400 },
+    { "id": "corridor-east", "name": "East Corridor", "type": "corridor", "capacity": 80 },
+    { "id": "corridor-west", "name": "West Corridor", "type": "corridor", "capacity": 80 },
+    { "id": "corridor-north", "name": "North Corridor", "type": "corridor", "capacity": 60 },
+    { "id": "hall-a", "name": "Hall A", "type": "room", "capacity": 300 },
+    { "id": "hall-b", "name": "Hall B", "type": "room", "capacity": 200 },
+    { "id": "room-101", "name": "Room 101", "type": "room", "capacity": 80 },
+    { "id": "room-102", "name": "Room 102", "type": "room", "capacity": 80 },
+    { "id": "room-103", "name": "Room 103", "type": "room", "capacity": 60 },
+    { "id": "room-104", "name": "Room 104", "type": "room", "capacity": 60 }
+  ],
+  "connections": [
+    ["atrium", "corridor-east"],
+    ["atrium", "corridor-west"],
+    ["corridor-east", "corridor-north"],
+    ["corridor-west", "corridor-north"],
+    ["corridor-east", "hall-a"],
+    ["corridor-east", "hall-b"],
+    ["corridor-east", "room-101"],
+    ["corridor-west", "room-102"],
+    ["corridor-west", "room-103"],
+    ["corridor-north", "room-104"]
   ]
 }

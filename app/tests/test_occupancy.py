@@ -1,10 +1,12 @@
+import json
+
 import pytest
 
 import occupancy
 from app import create_app
 from occupancy import area_status, level_for, smooth, snapshot
 
-AREA = {"id": "hall-a", "name": "Hall A", "kind": "talk", "capacity": 80}
+AREA = {"id": "hall-a", "name": "Hall A", "type": "room", "capacity": 80}
 NOW = 1_000_000.0
 
 
@@ -92,10 +94,19 @@ def test_venue_file_is_valid():
     ids = {a["id"] for a in venue}
     assert len(ids) == len(venue)
     for a in venue:
-        assert a["capacity"] > 0
-        assert set(a["neighbours"]) <= ids, a["id"]
-        for n in a["neighbours"]:  # walking is two-way
-            assert a["id"] in next(b for b in venue if b["id"] == n)["neighbours"]
+        assert a["capacity"] > 0 and a["type"] in {"room", "corridor"}, a["id"]
+    connections = json.loads(occupancy.VENUE_PATH.read_text())["connections"]
+    for pair in connections:
+        assert len(pair) == 2 and set(pair) <= ids, pair
+
+
+def test_counter_replay_areas_exist_in_venue():
+    # The counter's frames/<area>/ folders must use venue ids, or those
+    # areas never get a level.
+    from counter.mall_frames import DEFAULT_STRETCHES
+
+    ids = {a["id"] for a in occupancy.load_venue()}
+    assert set(DEFAULT_STRETCHES) <= ids
 
 
 class FakeClient:

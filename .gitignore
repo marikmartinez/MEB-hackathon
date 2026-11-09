@@ -6,10 +6,13 @@
 *.pem
 *.key
 
-node_modules/
-npm-debug.log*
+__pycache__/
+.venv/
 .DS_Store
 
 __pycache__/
 .venv/
 .pytest_cache/
+
+# Replay frames stay local: don't redistribute the Mall dataset (licence unconfirmed).
+counter/frames/*/

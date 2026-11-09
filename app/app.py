@@ -1,7 +1,7 @@
-"""Crowd-aware conference app (Flask).
+"""Crowd-aware conference app.
 
-Keep listening on $PORT and keep /healthz and /readyz: the manifests in
-deploy/ probe them.
+Keep listening on $PORT and keep /healthz and /readyz, and the manifests in
+deploy/ keep working.
 """
 import os
 
@@ -20,22 +20,37 @@ SESSIONS = [
 ]
 
 
-def create_app(occupancy_bp=None) -> Flask:
+def create_app(occupancy_bp=None):
     app = Flask(__name__)
     app.register_blueprint(occupancy_bp or occupancy.blueprint())
+    team = os.environ.get("TEAM_NAME", "your-team")
+    version = os.environ.get("APP_VERSION", "dev")
 
     @app.get("/healthz")
+    def healthz():
+        return "ok\n", 200, {"Content-Type": "text/plain"}
+
     @app.get("/readyz")
-    def health():
+    def readyz():
+        # Deliberately doesn't check Elasticsearch: if it's down, pods stay up
+        # and recommendations fall back.
         return "ok\n", 200, {"Content-Type": "text/plain"}
 
     @app.get("/api/sessions")
-    def sessions():
-        return jsonify(version=VERSION, sessions=SESSIONS)
+    def api_sessions():
+        return jsonify(version=version, sessions=SESSIONS)
 
     @app.get("/")
-    def index():
-        return render_template("index.html", team=TEAM, version=VERSION, sessions=SESSIONS)
+    def attendee():
+        return render_template(
+            "attendee.html", team=team, version=version, sessions=SESSIONS
+        )
+
+    @app.get("/organizer")
+    def organizer():
+        return render_template(
+            "organizer.html", team=team, version=version, sessions=SESSIONS
+        )
 
     return app
 

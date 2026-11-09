@@ -25,6 +25,20 @@ spec:
           env:
             - name: TEAM_NAME
               value: "meb"
+            # Secret es-credentials is created by hand and stays out of git.
+            # optional: the app still starts without it.
+            - name: ES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: es-credentials
+                  key: url
+                  optional: true
+            - name: ES_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: es-credentials
+                  key: api-key
+                  optional: true
           resources:
             requests:
               cpu: 100m
