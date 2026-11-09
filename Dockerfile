@@ -1,12 +1,13 @@
-FROM node:22-alpine
+FROM python:3.12-slim
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+COPY app/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ .
-# Install the app's dependencies, if it has any (the starter has none).
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund; \
-    elif [ -f package.json ]; then npm install --omit=dev --no-audit --no-fund; fi
 ARG APP_VERSION=dev
-ENV PORT=8080 APP_VERSION=$APP_VERSION NODE_ENV=production
-# The node image's "node" user, by number so runAsNonRoot can check it.
+ENV PORT=8080 APP_VERSION=$APP_VERSION
+# A numeric non-root user, so runAsNonRoot can check it.
 USER 1000
 EXPOSE 8080
-CMD ["node", "server.js"]
+# Shell form so $PORT expands; exec so gunicorn gets SIGTERM and drains cleanly.
+CMD exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 --graceful-timeout 20 --access-logfile - app:app
