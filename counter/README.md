@@ -47,7 +47,7 @@ python -m venv .venv && .venv/bin/pip install -r counter/requirements-dev.txt
 
 Env: `FRAMES_DIR`, `TICK_SECONDS` (30), `OCCUPANCY_URL` (unset = don't post), `OCCUPANCY_TOKEN` (sent as a bearer token), `CONF` (0.15), `THREADS` (1), `REPLAY` (1).
 
-On the cluster, `OCCUPANCY_URL` is the app's in-cluster Service (`http://app/api/occupancy`), and `OCCUPANCY_TOKEN` comes from Secret `es-credentials`, the same key the app checks. The app stores each post in Elasticsearch: the latest per room in `occupancy`, every reading in `occupancy-history` for the organizer dashboard. Watch `occupancy_posts_total{result}` on `/metrics` to see whether posts land.
+On the cluster, `OCCUPANCY_URL` is the app's in-cluster Service (`http://app/api/occupancy`), and `OCCUPANCY_TOKEN` comes from Secret `es-credentials`, the same key the app checks. The app stores each post in Elasticsearch: the latest per room in `occupancy`, every reading in `occupancy-history-v2` for the organizer dashboard. Watch `occupancy_posts_total{result}` on `/metrics` to see whether posts land.
 
 ```bash
 docker build -f counter/Dockerfile -t counter .

@@ -14,7 +14,7 @@ from elasticsearch import BadRequestError
 from elasticsearch.helpers import bulk
 
 from search.client import get_client
-from search.mappings import OCCUPANCY_MAPPINGS, TALKS_MAPPINGS
+from search.mappings import HISTORY_INDEX, OCCUPANCY_MAPPINGS, TALKS_MAPPINGS
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -75,7 +75,7 @@ def main():
     )
     ensure_index(client, "talks", TALKS_MAPPINGS)
     ensure_index(client, "occupancy", OCCUPANCY_MAPPINGS)
-    ensure_index(client, "occupancy-history", OCCUPANCY_MAPPINGS)
+    ensure_index(client, HISTORY_INDEX, OCCUPANCY_MAPPINGS)
     return 0 if load_into_es(client, talks) else 1
 
 

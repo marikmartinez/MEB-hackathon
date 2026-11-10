@@ -1,4 +1,4 @@
-"""Occupancy over time, from occupancy-history, for the organizer dashboard.
+"""Occupancy over time, from the history index, for the organizer dashboard.
 
 Each history document is one counter reading: the raw count plus the
 smoothed ratio and level the app stored with it (search/occupancy.py). The
@@ -12,10 +12,11 @@ from datetime import datetime, timedelta, timezone
 from elasticsearch import ApiError, TransportError
 
 from search.client import get_client
+from search.mappings import HISTORY_INDEX
 
 logger = logging.getLogger(__name__)
 
-INDEX = "occupancy-history"
+INDEX = HISTORY_INDEX
 # Enough points for a smooth line at dashboard width; more is noise.
 MAX_BUCKETS = 120
 # The counter posts every 30 s, so a finer bucket is mostly empty.
