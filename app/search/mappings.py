@@ -33,3 +33,11 @@ OCCUPANCY_MAPPINGS = {
         "ts": {"type": "date"},
     }
 }
+
+# Every reading, for smoothing and the organizer dashboard. Same mappings.
+# v2 because the first occupancy-history was auto-created by its first write,
+# with area as text: exact-match filters on a room never matched, and the
+# per-room aggregations failed. A field's type can't change in place, so the
+# app writes to a new index that it creates with these mappings itself
+# (search/occupancy.py, ensure_history_index).
+HISTORY_INDEX = "occupancy-history-v2"

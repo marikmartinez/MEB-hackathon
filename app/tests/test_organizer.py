@@ -93,7 +93,7 @@ def test_room_history_queries_the_window_on_history():
     with mock.patch.object(h, "get_client", return_value=client):
         h.room_history(start, NOW, ROOMS)
     kwargs = client.search.call_args.kwargs
-    assert kwargs["index"] == "occupancy-history"
+    assert kwargs["index"] == "occupancy-history-v2"
     assert kwargs["query"] == {"range": {"ts": {"gte": start.isoformat(), "lte": NOW.isoformat()}}}
     hist = kwargs["aggs"]["rooms"]["aggs"]["over_time"]["date_histogram"]
     assert hist["fixed_interval"] == "60s" and hist["min_doc_count"] == 1

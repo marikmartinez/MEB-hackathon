@@ -1,11 +1,25 @@
 from unittest import mock
 
 import pytest
+from elasticsearch import AuthorizationException, BadRequestError
 from elasticsearch import ConnectionError as ESConnectionError
 
 from search import occupancy as o
+from search.mappings import OCCUPANCY_MAPPINGS
 
 OK = {"items": [{"index": {"status": 200}}, {"index": {"status": 201}}]}
+
+
+@pytest.fixture(autouse=True)
+def fresh_process():
+    """ensure_history_index checks once per process; start each test afresh."""
+    o._history_ready = False
+    yield
+    o._history_ready = False
+
+
+def api_error(cls, error, status):
+    return cls(error, mock.Mock(status=status), {"error": {"type": error}})
 
 
 def es_client(*recent_counts):
@@ -61,7 +75,7 @@ def test_only_recent_history_for_this_room_is_read():
     client = es_client()
     record(client, 20)
     kwargs = client.search.call_args.kwargs
-    assert kwargs["index"] == "occupancy-history"
+    assert kwargs["index"] == "occupancy-history-v2"
     assert kwargs["sort"] == [{"ts": "desc"}]
     filters = kwargs["query"]["bool"]["filter"]
     assert {"term": {"area": "hall-a"}} in filters
@@ -77,3 +91,43 @@ def test_unreadable_history_still_stores_the_reading():
 @pytest.mark.parametrize("client", [None])
 def test_no_client_returns_none(client):
     assert record(client, 20) is None
+
+
+# ---------- the history index is created with its mappings ----------
+
+def test_history_index_is_created_with_mappings_before_the_first_write():
+    client = es_client()
+    record(client, 20)
+    client.indices.create.assert_called_once_with(index="occupancy-history-v2", mappings=OCCUPANCY_MAPPINGS)
+    _, history = stored_docs(client)
+    assert history["count"] == 20
+
+
+def test_an_existing_history_index_is_kept_and_checked_once():
+    client = es_client()
+    client.indices.create.side_effect = api_error(BadRequestError, "resource_already_exists_exception", 400)
+    record(client, 20)
+    record(client, 21)
+    assert client.indices.create.call_count == 1
+    assert len(client.bulk.call_args.kwargs["operations"]) == 4
+
+
+def test_history_is_skipped_not_auto_created_when_the_index_cant_be_made():
+    client = es_client()
+    client.indices.create.side_effect = api_error(AuthorizationException, "security_exception", 403)
+    client.bulk.return_value = {"items": [{"index": {"status": 200}}]}
+    doc = record(client, 20)
+    operations = client.bulk.call_args.kwargs["operations"]
+    assert doc["count"] == 20
+    assert [op for op in operations if "index" in op] == [{"index": {"_index": "occupancy", "_id": "hall-a"}}]
+
+
+def test_a_refused_create_is_retried_on_the_next_reading():
+    client = es_client()
+    client.indices.create.side_effect = [api_error(AuthorizationException, "security_exception", 403), None]
+    client.bulk.return_value = {"items": [{"index": {"status": 200}}]}
+    record(client, 20)
+    client.bulk.return_value = OK
+    record(client, 21)
+    assert client.indices.create.call_count == 2
+    assert len(client.bulk.call_args.kwargs["operations"]) == 4
