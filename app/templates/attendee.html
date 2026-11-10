@@ -15,6 +15,7 @@
         <h2 id="rooms-title">Rooms right now</h2>
         <p id="rooms-summary" class="dashboard-summary" aria-live="polite">Loading…</p>
       </div>
+      <p class="sim-clock">Conference time <strong id="sim-clock-time">--:--</strong> <span class="sim-clock-note">simulated: 1 minute = 1 hour</span></p>
       <p id="rooms-note" class="note" role="status" hidden></p>
       <ul id="rooms-now" class="rooms"></ul>
     </section>
@@ -41,5 +42,6 @@
   <script id="rooms" type="application/json">{{ rooms|tojson }}</script>
   <script src="{{ url_for('static', filename='attendee.js') }}"></script>
   <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='now.js') }}"></script>
 </body>
 </html>
