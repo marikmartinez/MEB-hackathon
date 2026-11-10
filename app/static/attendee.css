@@ -189,6 +189,26 @@ input, select {
 .room-full .meter-fill { background: var(--full-fill); }
 .room-detail { margin: 0; color: var(--muted); font-size: 0.85rem; }
 
+.sim-clock { margin: 8px 0 0; font-size: 0.95rem; }
+#sim-clock-time { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.sim-clock-note { color: var(--muted); font-size: 0.85rem; }
+
+.room-now { padding: 0 16px 14px; }
+.room-talk { margin: 0; font-size: 0.95rem; }
+.room-talk-label, .room-talk-meta, .room-talk-idle { color: var(--muted); }
+.room-talk-meta { font-size: 0.85rem; }
+.room-suggest {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.room-suggest p { margin: 0; }
+.room-suggest-title { font-size: 0.85rem; color: var(--muted); }
+.room-suggest-talk { margin-top: 4px !important; font-weight: 600; }
+.room-suggest-why { margin-top: 2px !important; font-size: 0.85rem; color: var(--muted); }
+
 @media (prefers-reduced-motion: reduce) {
   .meter-fill, .chevron { transition: none; }
 }

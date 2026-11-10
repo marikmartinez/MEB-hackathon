@@ -11,6 +11,7 @@ from flask import Flask, jsonify, render_template, request
 
 from search import history
 from search.levels import level_for
+from search.now import room_states
 from search.occupancy import load_rooms, record_occupancy
 from search.recommend import TalkNotFound, list_talks, recommend
 
@@ -58,6 +59,10 @@ def create_app(occupancy_bp=None):
             return jsonify(recommend(talk_id))
         except TalkNotFound:
             return jsonify(error="talk not found"), 404
+
+    @app.get("/api/now")
+    def api_now():
+        return jsonify(room_states(rooms))
 
     @app.post("/api/occupancy")
     def api_occupancy():

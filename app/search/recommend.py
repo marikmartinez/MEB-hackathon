@@ -69,16 +69,28 @@ def _is_fresh(reading, now):
     return age <= STALE_SECONDS
 
 
+def _fresh_readings(occupancy):
+    # Checked when used rather than when reading, so the fallback's last known
+    # levels expire too. A stale room counts as unknown, with no penalty.
+    now = time.time()
+    return {area: doc for area, doc in occupancy.items() if _is_fresh(doc, now)}
+
+
 def _room_level(occupancy, room_id):
     room = occupancy.get(room_id, {})
     return room.get("level") or level_for(room.get("ratio"))
 
 
+def current_levels():
+    """Return each room's current crowd level. Rooms without data are absent."""
+    client = get_client()
+    occupancy = _read_occupancy(client) if client is not None else _occupancy
+    fresh = _fresh_readings(occupancy)
+    return {area: _room_level(fresh, area) for area in fresh}
+
+
 def _rerank(talk, candidates, occupancy, k, source):
-    # Checked here rather than when reading, so the fallback's last known
-    # levels expire too. A stale room counts as unknown, with no penalty.
-    now = time.time()
-    occupancy = {area: doc for area, doc in occupancy.items() if _is_fresh(doc, now)}
+    occupancy = _fresh_readings(occupancy)
     top = max((relevance for _, relevance in candidates), default=0) or 1
     results = []
     for candidate, relevance in candidates:
@@ -103,14 +115,18 @@ def _rerank(talk, candidates, occupancy, k, source):
     }
 
 
-def _constraints(talk):
-    return {
-        "filter": [
+def _constraints(talk, at=None):
+    if at is None:
+        window = [
             {"range": {"start": {"lt": talk["end"]}}},
             {"range": {"end": {"gt": talk["start"]}}},
-        ],
-        "must_not": [{"ids": {"values": [talk["id"]]}}],
-    }
+        ]
+    else:
+        window = [
+            {"range": {"start": {"lte": at}}},
+            {"range": {"end": {"gt": at}}},
+        ]
+    return {"filter": window, "must_not": [{"ids": {"values": [talk["id"]]}}]}
 
 
 def _relevance_queries(talk):
@@ -142,7 +158,7 @@ def _relevance_queries(talk):
     ]
 
 
-def _search(client, talk):
+def _search(client, talk, at=None):
     # A plain bool, not RRF: RRF keeps only rank positions, which lets an
     # unrelated talk in an empty room beat a related talk in a busy one.
     return client.search(
@@ -151,7 +167,7 @@ def _search(client, talk):
             "bool": {
                 "should": _relevance_queries(talk),
                 "minimum_should_match": 1,
-                **_constraints(talk),
+                **_constraints(talk, at),
             }
         },
         size=OVERFETCH,
@@ -159,29 +175,32 @@ def _search(client, talk):
     )
 
 
-def _recommend_es(client, talk_id, k):
+def _recommend_es(client, talk_id, k, at):
     client = client.options(max_retries=0)
     talk = client.get(index="talks", id=talk_id, source_includes=TALK_FIELDS)["_source"]
     occupancy = _read_occupancy(client)
-    hits = _search(client, talk)["hits"]["hits"]
+    hits = _search(client, talk, at)["hits"]["hits"]
     candidates = [(hit["_source"], hit["_score"]) for hit in hits]
     return _rerank(talk, candidates, occupancy, k, "elasticsearch")
 
 
-def _recommend_fallback(talk_id, k):
+def _recommend_fallback(talk_id, k, at):
     talks = _seed_talks()
     talk = next((t for t in talks if t["id"] == talk_id), None)
     if talk is None:
         raise TalkNotFound(talk_id)
 
+    def in_window(other):
+        # ISO timestamps with the same offset compare correctly as strings.
+        if at is not None:
+            return other["start"] <= at < other["end"]
+        return other["start"] < talk["end"] and other["end"] > talk["start"]
+
     tags = set(talk.get("tags", []))
-    # ISO timestamps with the same offset compare correctly as strings.
     candidates = [
         (other, 1 + len(tags & set(other.get("tags", []))))
         for other in talks
-        if other["id"] != talk_id
-        and other["start"] < talk["end"]
-        and other["end"] > talk["start"]
+        if other["id"] != talk_id and in_window(other)
     ]
     return _rerank(talk, candidates, _occupancy, k, "fallback")
 
@@ -220,16 +239,17 @@ def list_talks(q=None):
     return {"source": "fallback", "talks": talks}
 
 
-def recommend(talk_id, k=5):
+def recommend(talk_id, k=5, at=None):
     """Return up to k talks at about the same time, best first.
 
+    With at (an ISO timestamp), only talks running at that moment count.
     Raises TalkNotFound for an unknown talk. If Elasticsearch can't answer,
     falls back to tag overlap from the seed schedule.
     """
     client = get_client()
     if client is not None:
         try:
-            return _recommend_es(client, talk_id, k)
+            return _recommend_es(client, talk_id, k, at)
         except (ApiError, TransportError) as err:
             logger.warning("recommendations falling back: %s", type(err).__name__)
-    return _recommend_fallback(talk_id, k)
+    return _recommend_fallback(talk_id, k, at)
